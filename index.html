@@ -170,6 +170,38 @@ canvas{display:none}
 .ai-result-lbl{color:var(--text-dim);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
 .ai-conf-bar{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin:0 8px}
 .ai-conf-fill{height:100%;border-radius:2px;transition:width .4s}
+/* Distance bar */
+.dist-bar-wrap{display:flex;flex-direction:column;gap:5px;margin:.5rem 0}
+.dist-lbl{font-size:11px;font-family:var(--mono);color:var(--text-dim);text-align:center}
+.dist-bar-track{height:12px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;position:relative}
+.dist-bar-fill{height:100%;border-radius:6px;transition:width .35s,background .35s;min-width:4px}
+.dist-status{font-size:12px;font-family:var(--mono);text-align:center;color:var(--text-dim);min-height:1.2em}
+/* Mode tabs */
+.mode-tabs{display:flex;gap:6px;margin-bottom:.5rem}
+.mode-tab{flex:1;padding:10px 6px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface);text-align:center;font-size:12px;font-family:var(--sans);font-weight:600;color:var(--text-dim);cursor:pointer;transition:all .15s;line-height:1.4}
+.mode-tab.sel{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+/* Global mute button */
+.g-mute{position:absolute;bottom:1.1rem;right:1.1rem;z-index:100;width:40px;height:40px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);color:var(--text-dim);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.5);transition:all .2s}
+.g-mute.muted{border-color:var(--danger);color:var(--danger);background:var(--danger-dim)}
+/* Fullscreen vision test overlay */
+.fs-ov{position:fixed;inset:0;z-index:600;background:#07090d;display:none;flex-direction:column;overflow:hidden}
+.fs-ov.show{display:flex}
+.fs-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:1rem 1.2rem;gap:.65rem;overflow:hidden}
+.fs-ctrl{display:flex;gap:.7rem;padding:.8rem 1.2rem;background:rgba(0,0,0,.6);flex-shrink:0;border-top:1px solid var(--border)}
+.fs-btn{padding:9px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.fs-btn.muted{border-color:var(--danger);color:var(--danger)}
+.fs-prog{display:flex;gap:3px;width:100%}
+.fs-chart{background:#000;border-radius:var(--r);border:1px solid var(--border);padding:1.2rem .8rem;text-align:center;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;flex:1;min-height:180px}
+.fs-arow{display:flex;gap:10px;width:100%}
+.fs-abtn{flex:1;padding:15px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:var(--sans);font-size:15px;font-weight:700;cursor:pointer;background:transparent;transition:all .15s;text-align:center}
+.fs-abtn:active{transform:scale(.96)}
+.fs-abtn.cor{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+.fs-abtn.wrg{border-color:var(--danger);background:var(--danger-dim);color:var(--danger)}
+/* Color blindness */
+.cb-num-btn{width:52px;height:52px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cb-num-btn:active{transform:scale(.93)}
+.cb-num-btn.cor{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+.cb-num-btn.wrg{border-color:var(--danger);background:var(--danger-dim);color:var(--danger)}
 </style>
 </head>
 <body>
@@ -202,6 +234,7 @@ async function loadEmbeddedModels(){
 <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="cvReady=true"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
 <div class="app">
+<button class="g-mute" id="gMute" onclick="tVoiceGlobal()" title="Mute/unmute voice">🔊</button>
 
 <!-- S1 WELCOME -->
 <div class="screen active" id="s1">
@@ -304,15 +337,26 @@ async function loadEmbeddedModels(){
   <div class="vbar" id="vb4"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb4t">Vision acuity test</div></div>
   <div class="content">
 
-    <!-- Step 1: 40 cm setup -->
+    <!-- Step 1: distance setup -->
     <div id="t-setup">
-      <div class="setup-card">
-        <div style="font-size:2.4rem;margin-bottom:.4rem">📏</div>
-        <div style="font-weight:700;font-size:1.05rem;margin-bottom:.4rem" id="ttitle">Position at 40 cm</div>
-        <div style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:.9rem" id="dtiptxt">Hold the screen at arm's length — about 40 centimetres from your face. Keep your head straight and upright.</div>
-        <div style="font-size:11px;color:var(--text-dimmer);margin-bottom:.75rem" id="tsub">The test has three phases: both eyes, then left eye, then right eye.</div>
+      <div class="mode-tabs">
+        <div class="mode-tab sel" id="modeNear" onclick="setTestMode('near')">📏 Near<br><span style="font-size:10px;opacity:.7">40 cm</span></div>
+        <div class="mode-tab" id="modeInter" onclick="setTestMode('inter')">🔭 Intermediate<br><span style="font-size:10px;opacity:.7">80–100 cm</span></div>
       </div>
-      <button class="btn-p" onclick="startVisionTest()" id="t-ready-btn">Ready — start test →</button>
+      <div class="setup-card">
+        <div style="font-size:2rem;margin-bottom:.35rem">📐</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem" id="ttitle">Position at 40 cm</div>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:.7rem" id="dtiptxt">Hold the screen at arm's length, about 40 cm from your face. Keep your head straight.</div>
+        <div class="dist-bar-wrap" id="distBarWrap">
+          <div class="dist-lbl" id="distLbl">Looking for your face…</div>
+          <div class="dist-bar-track">
+            <div class="dist-bar-fill" id="distBarFill" style="width:0%;background:var(--text-dimmer)"></div>
+          </div>
+          <div class="dist-status" id="distStatus">Position yourself in front of the screen</div>
+        </div>
+        <div style="font-size:10px;color:var(--text-dimmer);margin-top:.4rem" id="tsub">Phases: both eyes → left eye → right eye</div>
+      </div>
+      <button class="btn-p" onclick="startVisionTest()" id="t-ready-btn" disabled style="opacity:.4">Hold at correct distance to start</button>
       <div class="skip" onclick="skipTest()">Skip vision test</div>
     </div>
 
@@ -344,6 +388,7 @@ async function loadEmbeddedModels(){
   <div class="content">
     <div class="res-hero"><div class="rbadge bok" id="rbadge">ANALYSED</div><div style="font-size:1.3rem;margin-bottom:.3rem" id="rtitle">Results ready</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="rsub">Based on your eye photos and vision test</div></div>
     <div class="ecard" id="bcard" style="display:none;margin-bottom:0"><div class="eclbl">Binocular (both eyes)</div><div class="escore" id="bres">—</div><div class="esub" id="bresb">—</div></div>
+    <div class="ecard" id="cbCard" style="display:none;margin-bottom:0"><div class="eclbl">Color Vision</div><div class="escore" id="cbRes">—</div><div class="esub" id="cbResB">—</div></div>
     <div class="ecmp">
       <div class="ecard"><div class="eclbl" id="lell">Left eye</div><div class="escore" id="lres">—</div><div class="esub" id="lresb">Not tested</div></div>
       <div class="ecard"><div class="eclbl" id="rell">Right eye</div><div class="escore" id="rres">—</div><div class="esub" id="rresb">Not tested</div></div>
@@ -372,7 +417,50 @@ async function loadEmbeddedModels(){
   </div>
 </div>
 
+<!-- FULLSCREEN VISION TEST OVERLAY -->
+<div class="fs-ov" id="fsOv">
+  <div class="fs-body">
+    <div style="display:flex;gap:5px;width:100%">
+      <div class="pchip" id="fsPh0">👁👁<br>Both</div>
+      <div class="pchip" id="fsPh1">👁<br>Left</div>
+      <div class="pchip" id="fsPh2">👁<br>Right</div>
+    </div>
+    <div class="dtip" style="width:100%"><div class="pdot"></div><span id="fsTis">Keep both eyes open</span></div>
+    <div class="fs-prog" id="fsProg"></div>
+    <div class="fs-chart" id="fsChart"></div>
+    <div class="tinstr" style="width:100%;text-align:center" id="fsTir">Read the letters, then tap your answer</div>
+    <div class="fs-arow">
+      <button class="fs-abtn" id="fsAcor" onclick="ans(true)">✓ Correct</button>
+      <button class="fs-abtn" id="fsAwrg" onclick="ans(false)">✗ Can't read</button>
+    </div>
+  </div>
+  <div class="fs-ctrl">
+    <button class="fs-btn" id="fsMuteBtn" onclick="tVoiceGlobal()">🔊</button>
+    <button class="fs-btn" onclick="skipTestFS()" style="flex:1">Skip remaining</button>
+  </div>
+</div>
+
+<!-- S6 COLOR BLINDNESS TEST -->
+<div class="screen" id="s6">
+  <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div><button class="lang-btn" onclick="tLang()" id="lb6">עברית</button></div>
+  <div class="vbar" id="vb6"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb6t">Color vision test</div></div>
+  <div class="content">
+    <div style="text-align:center">
+      <div style="font-size:1rem;font-weight:700;margin-bottom:3px">Color Vision Check</div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer)" id="cbPlateNum">1 / 4</div>
+    </div>
+    <div style="display:flex;justify-content:center">
+      <canvas id="cbCanvas" width="270" height="270" style="display:block;border-radius:50%;border:2px solid var(--border)"></canvas>
+    </div>
+    <div style="text-align:center;font-size:1.05rem;font-weight:600;color:var(--text)">What number do you see?</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center" id="cbBtnRow"></div>
+    <button class="btn-s" onclick="cbAns('')" style="font-size:12px;padding:9px">I can't see a number</button>
+    <div class="skip" onclick="skipCBTest()">Skip color vision test</div>
+  </div>
+</div>
+
 <canvas id="cv"></canvas>
+<video id="distVid" autoplay playsinline muted style="display:none;position:absolute;width:1px;height:1px;opacity:0"></video>
 <input type="file" id="upinp" accept="image/*" style="display:none" onchange="onUpload(event)">
 <input type="file" id="cm_inp" accept=".json,.bin" multiple style="display:none" onchange="loadModel('consumer',event)">
 <input type="file" id="cl_inp" accept=".json,.bin" multiple style="display:none" onchange="loadModel('clinical',event)">
@@ -384,9 +472,11 @@ const TR={
 };
 
 let lang='en',voiceOn=true,who='self',curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
-let photos={left:null,right:null},scores={both:null,left:null,right:null},tPhase='both',tRow=0,tActive=false,hist=[];
+let photos={left:null,right:null},scores={both:null,left:null,right:null,cb:null},tPhase='both',tRow=0,tActive=false,hist=[];
 let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
+let distStream=null,distTimer=null,distConfirm=0,testMode='near',lastDistVoice=0;
+let cbSession=[],cbIdx=0,cbScores=[];
 
 // Extended Snellen chart — proportional to 40 cm viewing distance.
 // Sizes scale linearly: 6/60 (worst) is 10× the physical height of 6/6.
@@ -489,7 +579,8 @@ function _applyVoice(u){
     if(_bestVoice){u.voice=_bestVoice;u.lang=_bestVoice.lang;}
     else u.lang='en-US';
   }
-  u.rate=0.9;
+  u.rate=0.75;
+  u.pitch=0.9;
 }
 
 function speak(key,force=false){
@@ -517,10 +608,16 @@ function speakTxt(txt,force=false){
   synth.speak(u);
 }
 
-function setVtxt(txt){['vb1t','vb2t','vb3t','vb4t','vb5t'].forEach(id=>{const e=$(id);if(e)e.textContent=txt;})}
-function setVon(on){['vb1','vb2','vb3','vb4','vb5'].forEach(id=>{const e=$(id);if(e)e.classList.toggle('on',on);})}
+function setVtxt(txt){['vb1t','vb2t','vb3t','vb4t','vb5t','vb6t'].forEach(id=>{const e=$(id);if(e)e.textContent=txt;})}
+function setVon(on){['vb1','vb2','vb3','vb4','vb5','vb6'].forEach(id=>{const e=$(id);if(e)e.classList.toggle('on',on);})}
 
-function tVoice(){voiceOn=!voiceOn;const b=$('vtog');b.textContent=voiceOn?'ON':'OFF';b.classList.toggle('on',voiceOn);if(!voiceOn)synth.cancel();}
+function tVoice(){tVoiceGlobal();}
+function tVoiceGlobal(){
+  voiceOn=!voiceOn;
+  if(!voiceOn)synth.cancel();
+  const vt=$('vtog');if(vt){vt.textContent=voiceOn?'ON':'OFF';vt.classList.toggle('on',voiceOn);}
+  ['gMute','fsMuteBtn'].forEach(id=>{const e=$(id);if(e){e.textContent=voiceOn?'🔊':'🔇';e.classList.toggle('muted',!voiceOn);}});
+}
 
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');}
 
@@ -954,60 +1051,85 @@ function usePhoto(){
 }
 
 function initTest(){
-  scores={both:null,left:null,right:null};tPhase='both';tRow=0;tActive=false;
-  $('t-setup').style.display='';
-  $('t-run').style.display='none';
+  scores={both:null,left:null,right:null,cb:null};tPhase='both';tRow=0;tActive=false;
+  $('t-setup').style.display='';$('t-run').style.display='none';
+  distConfirm=0;setTestMode('near');
   speak('vboth',true);
+  startDistCam();
 }
 
 function startVisionTest(){
-  $('t-setup').style.display='none';
-  const tr=$('t-run');tr.style.display='flex';tr.style.flexDirection='column';tr.style.gap='.75rem';
-  scores={both:null,left:null,right:null};tRow=0;tActive=true;
-  runPhase('both');
+  stopDistCam();
+  $('t-setup').style.display='none';$('t-run').style.display='none';
+  scores={both:null,left:null,right:null,cb:null};tRow=0;tActive=true;
+  enterFS();
+  speakTxt('Both eyes open. Read the letters on screen, then tap Correct or Cannot read.',true);
+  setTimeout(()=>runPhase('both'),600);
 }
 
 function runPhase(ph){
   tPhase=ph;tRow=0;tActive=true;
+  const instrTxt=ph==='both'?'Keep both eyes open':ph==='left'?'Cover your RIGHT eye':'Cover your LEFT eye';
   ['both','left','right'].forEach((p,i)=>{
-    const chip=$('ph'+i);if(!chip)return;
-    if(scores[p]!==null)chip.className='pchip done';
-    else if(p===ph)chip.className='pchip active';
-    else chip.className='pchip';
+    ['ph'+i,'fsPh'+i].forEach(id=>{
+      const chip=$(id);if(!chip)return;
+      if(scores[p]!==null)chip.className='pchip done';
+      else if(p===ph)chip.className='pchip active';
+      else chip.className='pchip';
+    });
   });
-  if(ph==='both')$('tis').textContent='Keep both eyes open';
-  else if(ph==='left')$('tis').textContent='Cover your RIGHT eye';
-  else $('tis').textContent='Cover your LEFT eye';
-  $('tir').textContent='Read the letters, then tap your answer';
+  ['tis','fsTis'].forEach(id=>{const e=$(id);if(e)e.textContent=instrTxt;});
+  ['tir','fsTir'].forEach(id=>{const e=$(id);if(e)e.textContent='Read the letters, then tap your answer';});
   if(ph==='left')setTimeout(()=>speak('cr',true),400);
   else if(ph==='right')setTimeout(()=>speak('cl',true),400);
   renderCh();buildProg();
 }
 
-function buildProg(){$('prog').innerHTML=SNELLEN.map((_,i)=>`<div class="pseg ${i<tRow?'done':i===tRow?'cur':''}"></div>`).join('');}
+function buildProg(){
+  const html=SNELLEN.map((_,i)=>`<div class="pseg ${i<tRow?'done':i===tRow?'cur':''}"></div>`).join('');
+  ['prog','fsProg'].forEach(id=>{const e=$(id);if(e)e.innerHTML=html;});
+}
 
 function renderCh(){
   const row=SNELLEN[tRow];if(!row)return;
-  $('chartbox').innerHTML=`<div class="snellen-row">${row.l.map(l=>`<span class="cletter" style="font-size:${row.sz}px">${l}</span>`).join('')}</div><div style="font-size:10px;color:var(--text-dimmer);margin-top:4px;font-family:var(--mono)">${row.lb}</div>`;
+  const html=`<div class="snellen-row">${row.l.map(l=>`<span class="cletter" style="font-size:${row.sz}px">${l}</span>`).join('')}</div><div style="font-size:10px;color:var(--text-dimmer);margin-top:5px;font-family:var(--mono)">${row.lb}</div>`;
+  ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML=html;});
 }
 
 function ans(ok){
   if(!tActive)return;
   const b=ok?'acor':'awrg',c=ok?'cor':'wrg';
-  $(b).classList.add(c);setTimeout(()=>$(b).classList.remove(c),350);
+  const fb=ok?'fsAcor':'fsAwrg';
+  [b,fb].forEach(id=>{const e=$(id);if(e){e.classList.add(c);setTimeout(()=>e.classList.remove(c),320);}});
   if(ok){tRow++;if(tRow>=SNELLEN.length){saveTS(SNELLEN.length-1);return;}renderCh();buildProg();}
   else saveTS(Math.max(0,tRow-1));
 }
 
 function saveTS(ri){
   tActive=false;scores[tPhase]=ri;
-  ['both','left','right'].forEach((p,i)=>{const chip=$('ph'+i);if(chip&&p===tPhase)chip.className='pchip done';});
-  if(tPhase==='both'){$('tir').textContent='Great! Now cover your RIGHT eye.';setTimeout(()=>runPhase('left'),1200);}
-  else if(tPhase==='left'){$('tir').textContent='Now cover your LEFT eye.';setTimeout(()=>runPhase('right'),1200);}
-  else{$('tir').textContent=t('done');setTimeout(()=>showRes(),1000);}
+  ['both','left','right'].forEach((p,i)=>{
+    ['ph'+i,'fsPh'+i].forEach(id=>{const chip=$(id);if(chip&&p===tPhase)chip.className='pchip done';});
+  });
+  if(tPhase==='both'){
+    ['tir','fsTir'].forEach(id=>{const e=$(id);if(e)e.textContent='Great! Now cover your RIGHT eye.';});
+    speakTxt('Great. Now cover your right eye with your hand.',true);
+    setTimeout(()=>runPhase('left'),1400);
+  }else if(tPhase==='left'){
+    ['tir','fsTir'].forEach(id=>{const e=$(id);if(e)e.textContent='Now cover your LEFT eye.';});
+    speakTxt('Good. Now swap — cover your left eye.',true);
+    setTimeout(()=>runPhase('right'),1400);
+  }else{
+    ['tir','fsTir'].forEach(id=>{const e=$(id);if(e)e.textContent=t('done');});
+    speakTxt('Vision test complete. One more quick check.',true);
+    setTimeout(()=>{exitFS();initCBTest();},1400);
+  }
 }
 
-function skipTest(){scores={both:null,left:null,right:null};tActive=false;showRes();}
+function skipTest(){
+  tActive=false;stopDistCam();exitFS();
+  scores.cb=null;showRes();
+}
+function skipTestFS(){tActive=false;exitFS();scores.cb=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1033,11 +1155,23 @@ function showRes(){
     if(df>=2){ib.className='ibox ibox-warn';ib.textContent=t('imb');}
     else{ib.className='ibox ibox-ok';ib.textContent=t('bal');}
   }else{ib.className='ibox ibox-ok';ib.textContent=t('aok');}
+  // Color blindness result
+  const cbCard=$('cbCard');
+  if(cbCard){
+    if(scores.cb){
+      cbCard.style.display='';
+      const pct=scores.cb.pct;
+      $('cbRes').textContent=pct+'%';
+      $('cbRes').className='escore '+(pct>=75?'ok':pct>=50?'warn':'alert');
+      $('cbResB').textContent=pct>=75?'Normal color vision':pct>=50?'Mild color difficulty':'Color vision concern';
+    }else cbCard.style.display='none';
+  }
   const hasImb=scores.left!==null&&scores.right!==null&&Math.abs(scores.left-scores.right)>=2;
   const hasPoor=(scores.left!==null&&scores.left<4)||(scores.right!==null&&scores.right<4)||(scores.both!==null&&scores.both<4);
-  $('actxt').textContent=(hasImb||hasPoor)?t('awk'):t('aok');
+  const hasCBIssue=scores.cb&&scores.cb.pct<75;
+  $('actxt').textContent=(hasImb||hasPoor||hasCBIssue)?t('awk'):t('aok');
   const bd=$('rbadge'),rt=$('rtitle');
-  if(hasImb||hasPoor){bd.className='rbadge bwarn';bd.textContent='FOLLOW UP';rt.textContent=lang==='he'?'מומלץ לפנות לרופא':'Follow-up recommended';}
+  if(hasImb||hasPoor||hasCBIssue){bd.className='rbadge bwarn';bd.textContent='FOLLOW UP';rt.textContent=lang==='he'?'מומלץ לפנות לרופא':'Follow-up recommended';}
   else{bd.className='rbadge bok';bd.textContent='ALL CLEAR';rt.textContent=lang==='he'?'תוצאות תקינות':'Looking good';}
   buildHist(scores.left,scores.right);
   speak('vres',true);
@@ -1060,12 +1194,233 @@ function doShare(){
   const rs=scores.right!==null?SNELLEN[scores.right].lb:'Not tested';
   const df=scores.left!==null&&scores.right!==null?Math.abs(scores.left-scores.right):0;
   const note=df>=2?'Interocular difference detected — follow up recommended.':'Eyes appear balanced.';
-  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
+  const cbLine=scores.cb?`\nColor vision: ${scores.cb.pct}% (${scores.cb.correct}/${scores.cb.total} plates correct)`:'';
+  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}${cbLine}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
   if(navigator.share)navigator.share({title:'EyeAI Result',text:txt});
   else navigator.clipboard?.writeText(txt).then(()=>alert('Copied to clipboard'));
 }
 
-function resetAll(){photos={left:null,right:null};scores={both:null,left:null,right:null};curEye='left';setEye('left');}
+function resetAll(){
+  photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null};
+  curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];
+  stopDistCam();exitFS();
+}
+
+// ── DISTANCE CAMERA & MEASUREMENT ────────────────────────────────
+const DIST_TGT={
+  near: {min:0.12,max:0.23,label:'40 cm'},
+  inter:{min:0.06,max:0.12,label:'80–100 cm'}
+};
+
+function setTestMode(m){
+  testMode=m;
+  $('modeNear').classList.toggle('sel',m==='near');
+  $('modeInter').classList.toggle('sel',m==='inter');
+  const tgt=DIST_TGT[m];
+  const tt=$('ttitle');if(tt)tt.textContent='Position at '+tgt.label;
+  const dt=$('dtiptxt');if(dt)dt.textContent=m==='near'
+    ?"Hold the screen at arm's length, about 40 cm from your face. Keep your head straight."
+    :'Hold the screen at 80–100 cm. Sit upright with the screen at eye level.';
+  distConfirm=0;
+  const btn=$('t-ready-btn');
+  if(btn){btn.disabled=true;btn.style.opacity='.4';btn.textContent='Hold at correct distance to start';}
+}
+
+async function startDistCam(){
+  try{
+    if(distStream)distStream.getTracks().forEach(t=>t.stop());
+    distStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:320},height:{ideal:240}}});
+    const dv=$('distVid');dv.srcObject=distStream;
+    await dv.play().catch(()=>{});
+    startDistQ();
+    const tgt=DIST_TGT[testMode];
+    setTimeout(()=>speakTxt('Hold the screen at '+tgt.label+' from your face. The bar will turn green when the distance is right.',true),500);
+  }catch(e){
+    // Camera unavailable — let user start manually
+    const btn=$('t-ready-btn');
+    if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='Start test →';}
+  }
+}
+
+function stopDistCam(){
+  if(distTimer){clearInterval(distTimer);distTimer=null;}
+  if(distStream){distStream.getTracks().forEach(t=>t.stop());distStream=null;}
+}
+
+function startDistQ(){
+  if(distTimer)clearInterval(distTimer);
+  const dv=$('distVid');
+  distTimer=setInterval(()=>{
+    if(!dv||!dv.videoWidth)return;
+    if(faceMeshInst&&faceMeshReady&&!fmProcessing){
+      fmProcessing=true;
+      faceMeshInst.send({image:dv}).catch(()=>{}).finally(()=>{fmProcessing=false;});
+    }
+    updateDistBar(getFaceEyeSpan());
+  },250);
+}
+
+function getFaceEyeSpan(){
+  if(!latestLandmarks||latestLandmarks.length<=263)return null;
+  return Math.abs(latestLandmarks[263].x-latestLandmarks[33].x);
+}
+
+function updateDistBar(eyeSpan){
+  const tgt=DIST_TGT[testMode];
+  const fill=$('distBarFill'),status=$('distStatus'),lbl=$('distLbl'),btn=$('t-ready-btn');
+  if(!fill)return;
+  if(eyeSpan===null){
+    fill.style.width='8%';fill.style.background='var(--text-dimmer)';
+    if(status)status.textContent='No face detected — look at the screen';
+    if(lbl)lbl.textContent='Scanning…';
+    distConfirm=0;if(btn){btn.disabled=true;btn.style.opacity='.4';}
+    return;
+  }
+  // Bar: wider span (closer) → fuller bar. Calibrate so tgt.max fills ~80%.
+  const barPct=Math.min(98,Math.max(2,Math.round((eyeSpan/(tgt.max*1.25))*100)));
+  const inRange=eyeSpan>=tgt.min&&eyeSpan<=tgt.max;
+  const tooClose=eyeSpan>tgt.max;
+  let color,statusTxt,voiceTxt=null;
+  if(inRange){
+    color='var(--green)';distConfirm++;
+    const secs=Math.max(0,Math.ceil((8-distConfirm)/4));
+    statusTxt=distConfirm>=8?'✓ Perfect — starting now':secs>0?`✓ Perfect — hold still… ${secs}s`:'✓ Perfect distance';
+    if(distConfirm===4)voiceTxt='Perfect distance. Hold still.';
+  }else if(tooClose){
+    color='var(--warn)';distConfirm=0;statusTxt='↑ Move a little further back';
+    if(Date.now()-lastDistVoice>3500)voiceTxt='Move a little further back.';
+  }else{
+    const veryFar=eyeSpan<tgt.min*0.55;
+    color=veryFar?'var(--danger)':'var(--warn)';distConfirm=0;
+    statusTxt=veryFar?'↓ Move much closer':'↓ Move a little closer';
+    if(Date.now()-lastDistVoice>3500)voiceTxt=veryFar?'Move closer to the screen.':'A little closer.';
+  }
+  fill.style.width=barPct+'%';fill.style.background=color;
+  if(lbl)lbl.textContent='📐 Target: '+tgt.label;
+  if(status)status.textContent=statusTxt;
+  if(voiceTxt){speakTxt(voiceTxt,false);lastDistVoice=Date.now();}
+  if(distConfirm>=8){
+    if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='Distance confirmed — tap to start →';}
+    if(distConfirm===8){speakTxt('Great. Starting the test.',true);setTimeout(startVisionTest,1400);}
+  }else{
+    if(btn&&btn.disabled===false&&distConfirm<8){btn.disabled=true;btn.style.opacity='.4';}
+  }
+}
+// ── END DISTANCE CAMERA ───────────────────────────────────────────
+
+// ── FULLSCREEN OVERLAY ────────────────────────────────────────────
+function enterFS(){
+  const ov=$('fsOv');ov.classList.add('show');
+  try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}catch(e){}
+}
+function exitFS(){
+  const ov=$('fsOv');if(ov)ov.classList.remove('show');
+  try{document.fullscreenElement&&document.exitFullscreen&&document.exitFullscreen();}catch(e){}
+}
+// ── END FULLSCREEN ────────────────────────────────────────────────
+
+// ── COLOR BLINDNESS TEST ──────────────────────────────────────────
+const CB_PLATES=[
+  {num:'12',opts:['12','14','8','17'],seed:42},
+  {num:'8', opts:['8','3','6','9'],  seed:13},
+  {num:'29',opts:['29','70','2','9'],seed:77},
+  {num:'5', opts:['5','6','3','8'],  seed:51},
+  {num:'3', opts:['3','8','5','9'],  seed:88},
+  {num:'15',opts:['15','17','57','51'],seed:23},
+  {num:'74',opts:['74','71','41','47'],seed:61},
+  {num:'6', opts:['6','9','8','5'],  seed:95},
+  {num:'45',opts:['45','43','49','54'],seed:38},
+  {num:'97',opts:['97','79','91','47'],seed:17}
+];
+
+function seededRng(seed){
+  let s=seed+1;
+  return ()=>{s=(s*1664525+1013904223)&0xFFFFFFFF;return(s>>>0)/0x100000000;};
+}
+
+function drawCBPlate(canvas,numStr,seed){
+  const W=canvas.width,H=canvas.height,R=W/2;
+  const ctx=canvas.getContext('2d');
+  // Build digit mask
+  const mc=document.createElement('canvas');mc.width=W;mc.height=H;
+  const mctx=mc.getContext('2d');
+  mctx.fillStyle='#000';mctx.fillRect(0,0,W,H);
+  mctx.fillStyle='#fff';
+  const fs=numStr.length===1?Math.round(W*.52):Math.round(W*.36);
+  mctx.font=`bold ${fs}px Arial,sans-serif`;
+  mctx.textAlign='center';mctx.textBaseline='middle';
+  mctx.fillText(numStr,W/2,H/2);
+  const mask=mctx.getImageData(0,0,W,H).data;
+  // Draw plate
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.beginPath();ctx.arc(R,R,R-1,0,Math.PI*2);ctx.clip();
+  ctx.fillStyle='#787878';ctx.fillRect(0,0,W,H);
+  const rng=seededRng(seed);
+  for(let i=0;i<540;i++){
+    const x=rng()*W,y=rng()*H;
+    if((x-R)**2+(y-R)**2>(R-3)**2)continue;
+    const r=4+rng()*9;
+    const mx=Math.min(W-1,Math.max(0,Math.floor(x)));
+    const my=Math.min(H-1,Math.max(0,Math.floor(y)));
+    const isDigit=mask[(my*W+mx)*4]>128;
+    // Digit: red-orange (hue 5–30), background: green (hue 90–145)
+    // Both share lightness 38–55% → luminance-matched, only hue differs
+    const hue=isDigit?5+rng()*25:90+rng()*55;
+    const sat=48+rng()*28;
+    const lit=38+rng()*17;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`hsl(${hue},${sat}%,${lit}%)`;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function initCBTest(){
+  const shuffled=[...CB_PLATES].sort(()=>Math.random()-0.5);
+  cbSession=shuffled.slice(0,4);cbIdx=0;cbScores=[];
+  go('s6');
+  speakTxt('Now a quick color vision check. Look at each pattern and tap the number you see.',true);
+  setTimeout(()=>showCBPlate(0),1600);
+}
+
+function showCBPlate(idx){
+  if(idx>=cbSession.length){finishCBTest();return;}
+  cbIdx=idx;
+  const plate=cbSession[idx];
+  const canvas=$('cbCanvas');
+  canvas.width=canvas.height=270;
+  drawCBPlate(canvas,plate.num,plate.seed);
+  const pn=$('cbPlateNum');if(pn)pn.textContent=(idx+1)+' / '+cbSession.length;
+  const opts=[...plate.opts].sort(()=>Math.random()-0.5);
+  const row=$('cbBtnRow');
+  if(row)row.innerHTML=opts.map(o=>`<button class="cb-num-btn" onclick="cbAns('${o}')">${o}</button>`).join('');
+  setTimeout(()=>speakTxt('What number do you see?',false),400);
+}
+
+function cbAns(userInput){
+  const plate=cbSession[cbIdx];
+  const correct=userInput===plate.num;
+  cbScores.push({plate:plate.num,user:userInput,correct});
+  const row=$('cbBtnRow');
+  if(row)row.querySelectorAll('button').forEach(b=>{
+    if(b.textContent===userInput)b.className='cb-num-btn '+(correct?'cor':'wrg');
+    if(b.textContent===plate.num&&!correct)b.className='cb-num-btn cor';
+  });
+  speakTxt(correct?'Correct.':'The number was '+plate.num+'.',false);
+  setTimeout(()=>showCBPlate(cbIdx+1),1300);
+}
+
+function finishCBTest(){
+  const total=cbScores.length;
+  const correct=cbScores.filter(s=>s.correct).length;
+  scores.cb={total,correct,pct:total>0?Math.round(correct/total*100):0};
+  speakTxt(correct===total?'Excellent color vision.':'Color check complete. Showing your results now.',true);
+  setTimeout(showRes,1200);
+}
+
+function skipCBTest(){scores.cb=null;showRes();}
+// ── END COLOR BLINDNESS TEST ──────────────────────────────────────
 
 // ── AI MODEL INTEGRATION ──────────────────────────────────────────
 let consumerModel = null;
