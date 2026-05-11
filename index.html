@@ -57,13 +57,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .age-inp{width:100%;padding:9px 11px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:var(--sans);font-size:14px;outline:none}
 .age-inp:focus{border-color:var(--accent)}
 .vf{position:relative;background:#000;overflow:hidden;min-height:0;flex-shrink:0;height:48vh}
-#video{width:100%;height:100%;object-fit:cover;display:block}
+#vid{width:100%;height:100%;object-fit:cover;display:block}
 .vf-overlay{position:absolute;inset:0;display:flex;flex-direction:column;pointer-events:none}
 .vf-top{display:flex;justify-content:space-between;align-items:flex-start;padding:8px}
 .vfbadge{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:4px;background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.75);display:flex;align-items:center;gap:5px}
 .ldot{width:5px;height:5px;border-radius:50%;background:var(--danger);animation:blink 1s ease-in-out infinite}
 .vf-mid{flex:1;display:flex;align-items:center;justify-content:center}
-.oval{width:60%;aspect-ratio:1.7/1;border:2px solid rgba(88,166,255,.55);border-radius:50%;position:relative;transition:border-color .3s,box-shadow .3s}
+.oval{width:44%;aspect-ratio:1.7/1;border:2px solid rgba(88,166,255,.55);border-radius:50%;position:relative;transition:border-color .3s,box-shadow .3s}
 .oval.good{border-color:rgba(63,185,80,.9);box-shadow:0 0 16px rgba(63,185,80,.2)}
 .oval.warn{border-color:rgba(210,153,34,.9)}
 .oval.bad{border-color:rgba(248,81,73,.9)}
@@ -366,21 +366,55 @@ const $=id=>document.getElementById(id);
 const synth=window.speechSynthesis;
 let audioUnlocked=false;
 let _bestVoice=null;
+let _voiceReadyPromise=null;
 
-function getBestVoice(){
-  if(_bestVoice)return _bestVoice;
+function _pickBestVoice(){
   const vs=synth.getVoices();
-  if(!vs.length)return null;
-  // Preferred voices in order: most natural-sounding female English
-  const preferred=['Samantha','Karen','Google UK English Female'];
-  for(const name of preferred){const v=vs.find(x=>x.name===name);if(v){_bestVoice=v;return v;}}
-  // Fallback: female-sounding English voice by name heuristic
+  if(!vs.length)return false;
+  // iOS names voices with "(Enhanced)" suffix for high-quality variants — try both
+  const preferred=[
+    'Samantha (Enhanced)','Samantha',
+    'Karen (Enhanced)','Karen',
+    'Google UK English Female',
+    'Moira (Enhanced)','Moira',
+    'Tessa (Enhanced)','Tessa',
+    'Google US English'
+  ];
+  for(const name of preferred){
+    const v=vs.find(x=>x.name===name);
+    if(v){_bestVoice=v;return true;}
+  }
   const enVs=vs.filter(x=>x.lang.startsWith('en'));
   const femaleHints=['fiona','kate','susan','victoria','alice','moira','tessa','allison','ava','zoe','claire','sarah','emily','lisa','female','woman'];
-  for(const hint of femaleHints){const v=enVs.find(x=>x.name.toLowerCase().includes(hint));if(v){_bestVoice=v;return v;}}
-  // Last resort: first English voice
-  _bestVoice=enVs[0]||vs[0];
-  return _bestVoice;
+  for(const hint of femaleHints){
+    const v=enVs.find(x=>x.name.toLowerCase().includes(hint));
+    if(v){_bestVoice=v;return true;}
+  }
+  _bestVoice=enVs[0]||vs[0]||null;
+  return true;
+}
+
+function initVoices(){
+  _voiceReadyPromise=new Promise(resolve=>{
+    let done=false;
+    const finish=()=>{
+      if(done)return;
+      done=true;
+      _pickBestVoice();
+      resolve();
+    };
+    // Chrome/Firefox: voices may be ready immediately
+    if(synth.getVoices().length){finish();return;}
+    // Standard event
+    if('onvoiceschanged' in synth)synth.onvoiceschanged=finish;
+    // iOS Safari: onvoiceschanged is unreliable — poll every 100ms
+    const poll=setInterval(()=>{
+      if(synth.getVoices().length){clearInterval(poll);finish();}
+    },100);
+    // Hard timeout at 4s so we never block speech forever
+    setTimeout(()=>{clearInterval(poll);finish();},4000);
+  });
+  return _voiceReadyPromise;
 }
 
 function unlockAudio(){
@@ -410,8 +444,7 @@ function _applyVoice(u){
     if(hv)u.voice=hv;
     u.lang='he-IL';
   }else{
-    const bv=getBestVoice();
-    if(bv){u.voice=bv;u.lang=bv.lang;}
+    if(_bestVoice){u.voice=_bestVoice;u.lang=_bestVoice.lang;}
     else u.lang='en-US';
   }
   u.rate=0.9;
@@ -469,7 +502,7 @@ async function initCam(){
   try{
     if(stream)stream.getTracks().forEach(t=>t.stop());
     const f=curCam==='front'?'user':'environment';
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:f,width:{ideal:1920},height:{ideal:1080}}});
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:f}});
     const v=$('vid');v.srcObject=stream;v.style.transform='none';
     $('camno').classList.remove('show');
     $('camlbl').textContent=t(curCam==='front'?'fl':'bl');
@@ -1077,8 +1110,8 @@ window.addEventListener('load',()=>{
   initTilt();
   initFaceMesh();
   applyLang();
-  if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=()=>{_bestVoice=null;};
-  setTimeout(()=>speak('vwel',true),700);
+  // Wait for voices to load (handles Chrome sync load, iOS async, and Safari polling)
+  initVoices().then(()=>setTimeout(()=>speak('vwel',true),300));
 });
 </script>
 </body>
