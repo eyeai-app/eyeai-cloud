@@ -365,6 +365,23 @@ const t=k=>TR[lang][k]||TR.en[k]||k;
 const $=id=>document.getElementById(id);
 const synth=window.speechSynthesis;
 let audioUnlocked=false;
+let _bestVoice=null;
+
+function getBestVoice(){
+  if(_bestVoice)return _bestVoice;
+  const vs=synth.getVoices();
+  if(!vs.length)return null;
+  // Preferred voices in order: most natural-sounding female English
+  const preferred=['Samantha','Karen','Google UK English Female'];
+  for(const name of preferred){const v=vs.find(x=>x.name===name);if(v){_bestVoice=v;return v;}}
+  // Fallback: female-sounding English voice by name heuristic
+  const enVs=vs.filter(x=>x.lang.startsWith('en'));
+  const femaleHints=['fiona','kate','susan','victoria','alice','moira','tessa','allison','ava','zoe','claire','sarah','emily','lisa','female','woman'];
+  for(const hint of femaleHints){const v=enVs.find(x=>x.name.toLowerCase().includes(hint));if(v){_bestVoice=v;return v;}}
+  // Last resort: first English voice
+  _bestVoice=enVs[0]||vs[0];
+  return _bestVoice;
+}
 
 function unlockAudio(){
   if(audioUnlocked)return;
@@ -387,6 +404,19 @@ function unlockAudio(){
 }
 let lastMsg='';
 
+function _applyVoice(u){
+  if(lang==='he'){
+    const hv=synth.getVoices().find(x=>x.lang.startsWith('he'));
+    if(hv)u.voice=hv;
+    u.lang='he-IL';
+  }else{
+    const bv=getBestVoice();
+    if(bv){u.voice=bv;u.lang=bv.lang;}
+    else u.lang='en-US';
+  }
+  u.rate=0.9;
+}
+
 function speak(key,force=false){
   const txt=t(key);
   setVtxt(txt);
@@ -396,10 +426,7 @@ function speak(key,force=false){
   setVon(true);
   if(force)synth.cancel();
   const u=new SpeechSynthesisUtterance(txt);
-  u.lang=lang==='he'?'he-IL':'en-US';u.rate=0.92;
-  const vs=synth.getVoices();
-  const v=vs.find(x=>x.lang.startsWith(lang==='he'?'he':'en'))||vs[0];
-  if(v)u.voice=v;
+  _applyVoice(u);
   u.onend=()=>setVon(false);
   synth.speak(u);
 }
@@ -410,10 +437,7 @@ function speakTxt(txt,force=false){
   setVon(true);
   if(force)synth.cancel();
   const u=new SpeechSynthesisUtterance(txt);
-  u.lang=lang==='he'?'he-IL':'en-US';u.rate=0.92;
-  const vs=synth.getVoices();
-  const v=vs.find(x=>x.lang.startsWith(lang==='he'?'he':'en'))||vs[0];
-  if(v)u.voice=v;
+  _applyVoice(u);
   u.onend=()=>setVon(false);
   synth.speak(u);
 }
@@ -446,7 +470,7 @@ async function initCam(){
     if(stream)stream.getTracks().forEach(t=>t.stop());
     const f=curCam==='front'?'user':'environment';
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:f,width:{ideal:1920},height:{ideal:1080}}});
-    const v=$('vid');v.srcObject=stream;v.style.transform=f==='user'?'scaleX(-1)':'none';
+    const v=$('vid');v.srcObject=stream;v.style.transform='none';
     $('camno').classList.remove('show');
     $('camlbl').textContent=t(curCam==='front'?'fl':'bl');
     startQ();
@@ -503,7 +527,7 @@ async function initFaceMesh(){
 function startQ(){
   if(qTimer)clearInterval(qTimer);
   let lf=null,fn=0,expBuf=[],lastVoice={dark:0,bright:0,still:0,closer:0,tilt:0};
-  const HOLD_NEEDED=20; // ~5s at 250ms — gives user time to settle
+  const HOLD_NEEDED=32; // 8s at 250ms — countdown only begins once face mesh confirms an eye
 
   qTimer=setInterval(()=>{
     const v=$('vid');if(!v.videoWidth)return;
@@ -603,7 +627,11 @@ function startQ(){
         speakTxt(eyeFillPct<20?'Move closer to the camera':'Center your eye in the oval',false);
         lastVoice.closer=now;
       }
+    }else if(!latestLandmarks||latestLandmarks.length<=473){
+      // Eye fill looks OK by pixels but face mesh hasn't confirmed it yet — wait, don't count down
+      ov.className='oval warn';qs.textContent='ALIGN EYE';autoCapReady=0;
     }else{
+      // Face mesh confirms a real eye landmark inside the oval — start the hold countdown
       autoCapReady++;
       const countdown=Math.max(0,HOLD_NEEDED-autoCapReady);
       if(countdown>0){
@@ -643,19 +671,8 @@ async function doCapture(){
   c.height=vh;
   const ctx=c.getContext('2d');
 
-  if(curCam==='front'){
-    // Front camera: video stream is NOT mirrored (CSS mirror is display only)
-    // But the oval on screen shows center of the MIRRORED view
-    // So we flip horizontally to match what user sees in the oval
-    ctx.save();
-    ctx.translate(vw,0);
-    ctx.scale(-1,1);
-    ctx.drawImage(v,0,0);
-    ctx.restore();
-  } else {
-    // Back camera: no mirror needed
-    ctx.drawImage(v,0,0);
-  }
+  // Draw raw frame — display and capture both show raw sensor pixels, so what you see is what is saved
+  ctx.drawImage(v,0,0);
 
   // Crop to oval area — center 55% width, center 60% height
   const cropX=Math.floor(vw*.225);
@@ -1060,7 +1077,7 @@ window.addEventListener('load',()=>{
   initTilt();
   initFaceMesh();
   applyLang();
-  if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=()=>{};
+  if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=()=>{_bestVoice=null;};
   setTimeout(()=>speak('vwel',true),700);
 });
 </script>
