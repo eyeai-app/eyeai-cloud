@@ -63,7 +63,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .vfbadge{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:4px;background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.75);display:flex;align-items:center;gap:5px}
 .ldot{width:5px;height:5px;border-radius:50%;background:var(--danger);animation:blink 1s ease-in-out infinite}
 .vf-mid{flex:1;display:flex;align-items:center;justify-content:center}
-.oval{width:44%;aspect-ratio:1.7/1;border:2px solid rgba(88,166,255,.55);border-radius:50%;position:relative;transition:border-color .3s,box-shadow .3s}
+.oval{width:50%;aspect-ratio:1.7/1;border:2px solid rgba(88,166,255,.55);border-radius:50%;position:relative;transition:border-color .3s,box-shadow .3s}
 .oval.good{border-color:rgba(63,185,80,.9);box-shadow:0 0 16px rgba(63,185,80,.2)}
 .oval.warn{border-color:rgba(210,153,34,.9)}
 .oval.bad{border-color:rgba(248,81,73,.9)}
@@ -154,6 +154,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .fill-bar::after{content:'';display:block;height:100%;background:var(--green);border-radius:2px;width:var(--fill,0%);transition:width .3s}
 .fill-lbl{font-size:10px;font-family:var(--mono);color:var(--text-dim)}
 canvas{display:none}
+.pchip{flex:1;padding:6px 4px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface);text-align:center;font-size:10px;font-family:var(--mono);color:var(--text-dimmer);line-height:1.4;transition:all .2s}
+.pchip.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.pchip.done{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:1.2rem;text-align:center}
+.snellen-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:3px}
 .ai-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim)}
 .ai-badge.running{border-color:var(--accent);color:var(--accent)}
 .ai-badge.ok{border-color:var(--green);color:var(--green)}
@@ -298,14 +303,37 @@ async function loadEmbeddedModels(){
   <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div><button class="lang-btn" onclick="tLang()" id="lb4">עברית</button></div>
   <div class="vbar" id="vb4"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb4t">Vision acuity test</div></div>
   <div class="content">
-    <div style="text-align:center;padding:.4rem 0"><div style="font-size:1.2rem;margin-bottom:.3rem" id="ttitle">Vision Test</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="tsub">Test each eye separately. Cover one eye with your hand.</div></div>
-    <div class="dtip"><div class="pdot"></div><span id="dtiptxt">Hold screen at arm's length — about 40cm from your face</span></div>
-    <div class="tgrp"><div class="topt sel" onclick="tEye('left')" id="tleft">👁 <span id="tleftl">Left eye</span></div><div class="topt" onclick="tEye('right')" id="tright">👁 <span id="trightl">Right eye</span></div></div>
-    <div class="prog" id="prog"></div>
-    <div class="chart-box" id="chartbox"></div>
-    <div class="tinstr"><strong id="tis"></strong> <span id="tir"></span></div>
-    <div class="arow"><button class="abtn" id="acor" onclick="ans(true)">✓ <span id="ayesl">Correct</span></button><button class="abtn" id="awrg" onclick="ans(false)">✗ <span id="anol">Couldn't read</span></button></div>
-    <div class="skip" onclick="skipT()" id="skipl">Skip this test</div>
+
+    <!-- Step 1: 40 cm setup -->
+    <div id="t-setup">
+      <div class="setup-card">
+        <div style="font-size:2.4rem;margin-bottom:.4rem">📏</div>
+        <div style="font-weight:700;font-size:1.05rem;margin-bottom:.4rem" id="ttitle">Position at 40 cm</div>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:.9rem" id="dtiptxt">Hold the screen at arm's length — about 40 centimetres from your face. Keep your head straight and upright.</div>
+        <div style="font-size:11px;color:var(--text-dimmer);margin-bottom:.75rem" id="tsub">The test has three phases: both eyes, then left eye, then right eye.</div>
+      </div>
+      <button class="btn-p" onclick="startVisionTest()" id="t-ready-btn">Ready — start test →</button>
+      <div class="skip" onclick="skipTest()">Skip vision test</div>
+    </div>
+
+    <!-- Step 2: chart in progress -->
+    <div id="t-run" style="display:none">
+      <div style="display:flex;gap:5px">
+        <div class="pchip" id="ph0">👁👁<br>Both</div>
+        <div class="pchip" id="ph1">👁<br>Left</div>
+        <div class="pchip" id="ph2">👁<br>Right</div>
+      </div>
+      <div class="dtip"><div class="pdot"></div><span id="tis">Keep both eyes open</span></div>
+      <div class="prog" id="prog"></div>
+      <div class="chart-box" id="chartbox" style="min-height:180px"></div>
+      <div class="tinstr"><span id="tir">Read the letters, then tap your answer</span></div>
+      <div class="arow">
+        <button class="abtn" id="acor" onclick="ans(true)">✓ <span id="ayesl">Correct</span></button>
+        <button class="abtn" id="awrg" onclick="ans(false)">✗ <span id="anol">Couldn't read</span></button>
+      </div>
+      <div class="skip" onclick="skipTest()" id="skipl">Skip remaining test</div>
+    </div>
+
   </div>
 </div>
 
@@ -315,6 +343,7 @@ async function loadEmbeddedModels(){
   <div class="vbar on" id="vb5"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb5t">Your results are ready</div></div>
   <div class="content">
     <div class="res-hero"><div class="rbadge bok" id="rbadge">ANALYSED</div><div style="font-size:1.3rem;margin-bottom:.3rem" id="rtitle">Results ready</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="rsub">Based on your eye photos and vision test</div></div>
+    <div class="ecard" id="bcard" style="display:none;margin-bottom:0"><div class="eclbl">Binocular (both eyes)</div><div class="escore" id="bres">—</div><div class="esub" id="bresb">—</div></div>
     <div class="ecmp">
       <div class="ecard"><div class="eclbl" id="lell">Left eye</div><div class="escore" id="lres">—</div><div class="esub" id="lresb">Not tested</div></div>
       <div class="ecard"><div class="eclbl" id="rell">Right eye</div><div class="escore" id="rres">—</div><div class="esub" id="rresb">Not tested</div></div>
@@ -355,11 +384,24 @@ const TR={
 };
 
 let lang='en',voiceOn=true,who='self',curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
-let photos={left:null,right:null},scores={left:null,right:null},tEyeCur='left',tRow=0,tActive=true,hist=[];
+let photos={left:null,right:null},scores={both:null,left:null,right:null},tPhase='both',tRow=0,tActive=false,hist=[];
 let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
 
-const ROWS=[{l:['E'],sz:66,lb:'20/200',s:0},{l:['F','P'],sz:50,lb:'20/100',s:1},{l:['T','O','Z'],sz:38,lb:'20/70',s:2},{l:['L','P','E','D'],sz:29,lb:'20/50',s:3},{l:['P','E','C','F','D'],sz:22,lb:'20/40',s:4},{l:['E','D','F','C','Z','P'],sz:16,lb:'20/30',s:5},{l:['F','E','L','O','P','Z','D'],sz:13,lb:'20/20',s:6},{l:['D','E','F','P','O','T','E','C'],sz:10,lb:'20/15',s:7}];
+// Extended Snellen chart — proportional to 40 cm viewing distance.
+// Sizes scale linearly: 6/60 (worst) is 10× the physical height of 6/6.
+const SNELLEN=[
+  {l:['E'],                                         sz:80, lb:'6/60'},
+  {l:['F','P'],                                     sz:64, lb:'6/48'},
+  {l:['T','O','Z'],                                 sz:50, lb:'6/36'},
+  {l:['L','P','E','D'],                             sz:38, lb:'6/24'},
+  {l:['P','3','C','F','D'],                         sz:28, lb:'6/18'},
+  {l:['E','D','F','8','Z','P'],                     sz:20, lb:'6/12'},
+  {l:['F','E','2','O','P','Z','D'],                 sz:14, lb:'6/9'},
+  {l:['D','6','F','P','O','T','E','C'],             sz:11, lb:'6/7.5'},
+  {l:['P','O','5','F','C','Z','3','D','E'],         sz:9,  lb:'6/6'},
+  {l:['H','8','N','V','7','R','K','2','U','4'],     sz:7,  lb:'6/5'},
+];
 
 const t=k=>TR[lang][k]||TR.en[k]||k;
 const $=id=>document.getElementById(id);
@@ -908,38 +950,80 @@ function usePhoto(){
   if(!ld||!rd){
     const ne=curEye==='left'?'right':'left';
     curEye=ne;setEye(ne);go('s2');startQ();speak('voth',true);
-  }else{go('s4');initTest();speak('vboth',true);}
+  }else{go('s4');initTest();}
 }
 
-function initTest(){tEyeCur='left';tRow=0;tActive=true;scores={left:null,right:null};renderTE('left');renderCh();buildProg();setTimeout(()=>speakTxt(t('cr')+' '+t('rl'),true),800);}
+function initTest(){
+  scores={both:null,left:null,right:null};tPhase='both';tRow=0;tActive=false;
+  $('t-setup').style.display='';
+  $('t-run').style.display='none';
+  speak('vboth',true);
+}
 
-function tEye(e){tEyeCur=e;tRow=0;tActive=true;$('tleft').classList.toggle('sel',e==='left');$('tright').classList.toggle('sel',e==='right');renderTE(e);renderCh();buildProg();}
+function startVisionTest(){
+  $('t-setup').style.display='none';
+  const tr=$('t-run');tr.style.display='flex';tr.style.flexDirection='column';tr.style.gap='.75rem';
+  scores={both:null,left:null,right:null};tRow=0;tActive=true;
+  runPhase('both');
+}
 
-function renderTE(e){$('tis').textContent=e==='left'?t('cr'):t('cl');$('tir').textContent=t('rl');}
+function runPhase(ph){
+  tPhase=ph;tRow=0;tActive=true;
+  ['both','left','right'].forEach((p,i)=>{
+    const chip=$('ph'+i);if(!chip)return;
+    if(scores[p]!==null)chip.className='pchip done';
+    else if(p===ph)chip.className='pchip active';
+    else chip.className='pchip';
+  });
+  if(ph==='both')$('tis').textContent='Keep both eyes open';
+  else if(ph==='left')$('tis').textContent='Cover your RIGHT eye';
+  else $('tis').textContent='Cover your LEFT eye';
+  $('tir').textContent='Read the letters, then tap your answer';
+  if(ph==='left')setTimeout(()=>speak('cr',true),400);
+  else if(ph==='right')setTimeout(()=>speak('cl',true),400);
+  renderCh();buildProg();
+}
 
-function buildProg(){$('prog').innerHTML=ROWS.map((_,i)=>`<div class="pseg ${i<tRow?'done':i===tRow?'cur':''}"></div>`).join('');}
+function buildProg(){$('prog').innerHTML=SNELLEN.map((_,i)=>`<div class="pseg ${i<tRow?'done':i===tRow?'cur':''}"></div>`).join('');}
 
-function renderCh(){const row=ROWS[tRow];$('chartbox').innerHTML=`<div>${row.l.map(l=>`<span class="cletter" style="font-size:${row.sz}px">${l}</span>`).join('')}</div>`;}
+function renderCh(){
+  const row=SNELLEN[tRow];if(!row)return;
+  $('chartbox').innerHTML=`<div class="snellen-row">${row.l.map(l=>`<span class="cletter" style="font-size:${row.sz}px">${l}</span>`).join('')}</div><div style="font-size:10px;color:var(--text-dimmer);margin-top:4px;font-family:var(--mono)">${row.lb}</div>`;
+}
 
 function ans(ok){
   if(!tActive)return;
   const b=ok?'acor':'awrg',c=ok?'cor':'wrg';
   $(b).classList.add(c);setTimeout(()=>$(b).classList.remove(c),350);
-  if(ok){tRow++;if(tRow>=ROWS.length){saveTS(ROWS.length-1);return;}renderCh();buildProg();}
+  if(ok){tRow++;if(tRow>=SNELLEN.length){saveTS(SNELLEN.length-1);return;}renderCh();buildProg();}
   else saveTS(Math.max(0,tRow-1));
 }
 
 function saveTS(ri){
-  tActive=false;scores[tEyeCur]=ri;
-  if(scores.left!==null&&scores.right!==null){$('tis').textContent='';$('tir').textContent=t('done');setTimeout(()=>showRes(),1000);}
-  else{const ne=tEyeCur==='left'?'right':'left';setTimeout(()=>tEye(ne),700);speakTxt((ne==='right'?t('cl'):t('cr'))+' '+t('rl'),true);}
+  tActive=false;scores[tPhase]=ri;
+  ['both','left','right'].forEach((p,i)=>{const chip=$('ph'+i);if(chip&&p===tPhase)chip.className='pchip done';});
+  if(tPhase==='both'){$('tir').textContent='Great! Now cover your RIGHT eye.';setTimeout(()=>runPhase('left'),1200);}
+  else if(tPhase==='left'){$('tir').textContent='Now cover your LEFT eye.';setTimeout(()=>runPhase('right'),1200);}
+  else{$('tir').textContent=t('done');setTimeout(()=>showRes(),1000);}
 }
 
-function skipT(){scores={left:null,right:null};showRes();}
+function skipTest(){scores={both:null,left:null,right:null};tActive=false;showRes();}
 
 function showRes(){
   go('s5');
-  function sl(s){if(s===null)return{l:'—',c:'',b:''};const r=ROWS[s];const b=s>=6?t('nv'):s>=4?t('mr'):s>=2?t('mod'):t('na');const c=s>=6?'ok':s>=4?'warn':'alert';return{l:r.lb,c,b};}
+  function sl(s){
+    if(s===null)return{l:'—',c:'',b:'Not tested'};
+    const r=SNELLEN[s];
+    const b=s>=8?t('nv'):s>=6?t('mr'):s>=4?t('mod'):t('na');
+    const c=s>=8?'ok':s>=6?'warn':'alert';
+    return{l:r.lb,c,b};
+  }
+  const bc=$('bcard');
+  if(scores.both!==null){
+    bc.style.display='';
+    const br=sl(scores.both);
+    $('bres').textContent=br.l;$('bres').className='escore '+br.c;$('bresb').textContent=br.b;
+  }else{bc.style.display='none';}
   const lr=sl(scores.left),rr=sl(scores.right);
   $('lres').textContent=lr.l;$('lres').className='escore '+lr.c;$('lresb').textContent=lr.b;
   $('rres').textContent=rr.l;$('rres').className='escore '+rr.c;$('rresb').textContent=rr.b;
@@ -948,9 +1032,9 @@ function showRes(){
     const df=Math.abs(scores.left-scores.right);
     if(df>=2){ib.className='ibox ibox-warn';ib.textContent=t('imb');}
     else{ib.className='ibox ibox-ok';ib.textContent=t('bal');}
-  }
+  }else{ib.className='ibox ibox-ok';ib.textContent=t('aok');}
   const hasImb=scores.left!==null&&scores.right!==null&&Math.abs(scores.left-scores.right)>=2;
-  const hasPoor=(scores.left!==null&&scores.left<4)||(scores.right!==null&&scores.right<4);
+  const hasPoor=(scores.left!==null&&scores.left<4)||(scores.right!==null&&scores.right<4)||(scores.both!==null&&scores.both<4);
   $('actxt').textContent=(hasImb||hasPoor)?t('awk'):t('aok');
   const bd=$('rbadge'),rt=$('rtitle');
   if(hasImb||hasPoor){bd.className='rbadge bwarn';bd.textContent='FOLLOW UP';rt.textContent=lang==='he'?'מומלץ לפנות לרופא':'Follow-up recommended';}
@@ -963,7 +1047,7 @@ function showRes(){
 function buildHist(l,r){
   hist.push({l:l!==null?l:4,r:r!==null?r:4});
   if(hist.length>8)hist=hist.slice(-8);
-  const g=$('hgraph'),mx=ROWS.length-1,mh=40;
+  const g=$('hgraph'),mx=SNELLEN.length-1,mh=40;
   g.innerHTML=hist.map((d,i)=>{
     const lh=Math.round((d.l/mx)*mh),rh=Math.round((d.r/mx)*mh),lat=i===hist.length-1;
     return `<div style="flex:1;display:flex;gap:2px;align-items:flex-end"><div class="hbar" style="height:${lh}px;background:var(--accent);opacity:${lat?1:.45}"></div><div class="hbar" style="height:${rh}px;background:var(--green);opacity:${lat?1:.45}"></div></div>`;
@@ -971,16 +1055,17 @@ function buildHist(l,r){
 }
 
 function doShare(){
-  const ls=scores.left!==null?ROWS[scores.left].lb:'Not tested';
-  const rs=scores.right!==null?ROWS[scores.right].lb:'Not tested';
+  const bs=scores.both!==null?SNELLEN[scores.both].lb:'Not tested';
+  const ls=scores.left!==null?SNELLEN[scores.left].lb:'Not tested';
+  const rs=scores.right!==null?SNELLEN[scores.right].lb:'Not tested';
   const df=scores.left!==null&&scores.right!==null?Math.abs(scores.left-scores.right):0;
   const note=df>=2?'Interocular difference detected — follow up recommended.':'Eyes appear balanced.';
-  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nLeft eye: ${ls}\nRight eye: ${rs}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
+  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
   if(navigator.share)navigator.share({title:'EyeAI Result',text:txt});
   else navigator.clipboard?.writeText(txt).then(()=>alert('Copied to clipboard'));
 }
 
-function resetAll(){photos={left:null,right:null};scores={left:null,right:null};curEye='left';setEye('left');}
+function resetAll(){photos={left:null,right:null};scores={both:null,left:null,right:null};curEye='left';setEye('left');}
 
 // ── AI MODEL INTEGRATION ──────────────────────────────────────────
 let consumerModel = null;
