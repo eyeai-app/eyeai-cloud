@@ -195,6 +195,7 @@ async function loadEmbeddedModels(){
 }
 </script>
 <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="cvReady=true"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
 <div class="app">
 
 <!-- S1 WELCOME -->
@@ -356,6 +357,7 @@ const TR={
 let lang='en',voiceOn=true,who='self',curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
 let photos={left:null,right:null},scores={left:null,right:null},tEyeCur='left',tRow=0,tActive=true,hist=[];
 let autoCapReady=0,autoCapturing=false;
+let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
 
 const ROWS=[{l:['E'],sz:66,lb:'20/200',s:0},{l:['F','P'],sz:50,lb:'20/100',s:1},{l:['T','O','Z'],sz:38,lb:'20/70',s:2},{l:['L','P','E','D'],sz:29,lb:'20/50',s:3},{l:['P','E','C','F','D'],sz:22,lb:'20/40',s:4},{l:['E','D','F','C','Z','P'],sz:16,lb:'20/30',s:5},{l:['F','E','L','O','P','Z','D'],sz:13,lb:'20/20',s:6},{l:['D','E','F','P','O','T','E','C'],sz:10,lb:'20/15',s:7}];
 
@@ -485,15 +487,29 @@ function initTilt(){
   }
 }
 
+async function initFaceMesh(){
+  if(!window.FaceMesh){console.warn('MediaPipe FaceMesh not available');return;}
+  try{
+    faceMeshInst=new FaceMesh({
+      locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${f}`
+    });
+    faceMeshInst.setOptions({maxNumFaces:1,refineLandmarks:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5});
+    faceMeshInst.onResults(r=>{latestLandmarks=(r.multiFaceLandmarks&&r.multiFaceLandmarks[0])||null;});
+    await faceMeshInst.initialize();
+    faceMeshReady=true;
+  }catch(e){console.warn('FaceMesh init error:',e);}
+}
+
 function startQ(){
   if(qTimer)clearInterval(qTimer);
   let lf=null,fn=0,expBuf=[],lastVoice={dark:0,bright:0,still:0,closer:0,tilt:0};
+  const HOLD_NEEDED=20; // ~5s at 250ms — gives user time to settle
 
   qTimer=setInterval(()=>{
     const v=$('vid');if(!v.videoWidth)return;
     const W=v.videoWidth,H=v.videoHeight;
 
-    // Small canvas for brightness/motion analysis
+    // Brightness analysis on 64×64 thumbnail
     const small=document.createElement('canvas');small.width=64;small.height=64;
     const sc=small.getContext('2d');sc.drawImage(v,0,0,64,64);
     const fd=sc.getImageData(0,0,64,64).data;
@@ -501,33 +517,56 @@ function startQ(){
     br/=(64*64);
     const lp=Math.min(100,Math.round((br/255)*100));
 
-    // Eye region — center 50% of frame
-    const ex=Math.floor(W*.25),ey=Math.floor(H*.2),ew=Math.floor(W*.5),eh=Math.floor(H*.6);
-    const ec=document.createElement('canvas');ec.width=40;ec.height=40;
-    const ecc=ec.getContext('2d');ecc.drawImage(v,ex,ey,ew,eh,0,0,40,40);
-    const ed=ecc.getImageData(0,0,40,40).data;
-    let edark=0,emid=0;
-    for(let i=0;i<ed.length;i+=4){
-      const lum=(ed[i]+ed[i+1]+ed[i+2])/3;
-      if(lum<70)edark++;
-      else if(lum<160)emid++;
-    }
-    const total=40*40;
-    const eyeFillPct=Math.min(100,Math.round((edark/total)*300));
-    // Eye detected if has pupil-like dark center AND iris-like mid tones
-    const eyeDetected=(edark/total>0.04)&&(emid/total>0.08);
-
     // Motion
     let mo=0;if(lf){for(let i=0;i<fd.length;i+=4)mo+=Math.abs(fd[i]-lf[i]);mo/=fd.length;}
-    lf=Array.from(fd);
+    lf=Array.from(fd);fn++;
     const sp=Math.min(100,Math.max(0,Math.round(100-mo*5)));
-    fn++;
 
     // Exposure stability
     expBuf.push(lp);if(expBuf.length>8)expBuf.shift();
     const expStable=expBuf.length>=6&&(Math.max(...expBuf)-Math.min(...expBuf))<10;
 
-    // Update metrics
+    // ── EYE DETECTION — MediaPipe Face Mesh ──────────────────────────
+    // Send current frame; result lands in latestLandmarks on next tick (fire-and-forget).
+    // Front camera: CSS scaleX(-1) mirrors display only — raw pixel coords are unchanged,
+    // so raw frame center (x=0.5) == display oval center regardless of facing direction.
+    if(faceMeshInst&&faceMeshReady&&!fmProcessing){
+      fmProcessing=true;
+      faceMeshInst.send({image:v}).catch(()=>{}).finally(()=>{fmProcessing=false;});
+    }
+
+    let eyeFillPct=0,eyeDetected=false;
+    if(latestLandmarks&&latestLandmarks.length>473){
+      // Iris centers: landmark 468=subject-left, 473=subject-right (refineLandmarks:true)
+      const iL=latestLandmarks[468],iR=latestLandmarks[473];
+      // Eye-corner pairs for horizontal width measurement
+      const lO=latestLandmarks[33], lI=latestLandmarks[133]; // left eye outer/inner corners
+      const rI=latestLandmarks[362],rO=latestLandmarks[263]; // right eye inner/outer corners
+
+      // Pick whichever eye is closest to the raw-frame center x=0.5 (= oval center)
+      const useLeft=Math.abs(iL.x-0.5)<Math.abs(iR.x-0.5);
+      const eyeCx=useLeft?iL.x:iR.x;
+      const eyeCy=useLeft?iL.y:iR.y;
+      const eyeW=useLeft?Math.abs(lO.x-lI.x):Math.abs(rO.x-rI.x);
+
+      // eyeW ≈ 0.08–0.18 at a good capture distance; scale so 0.15 → 100%
+      eyeFillPct=Math.min(100,Math.round((eyeW/0.15)*100));
+      // Detected when centred within ±18% x and ±22% y, and wide enough
+      eyeDetected=Math.abs(eyeCx-0.5)<0.18&&Math.abs(eyeCy-0.5)<0.22&&eyeW>0.03;
+    } else {
+      // Fallback pixel check while face mesh loads or when face is absent
+      const ex=Math.floor(W*.25),ey=Math.floor(H*.2),ew=Math.floor(W*.5),eh=Math.floor(H*.6);
+      const ec=document.createElement('canvas');ec.width=40;ec.height=40;
+      const ecc=ec.getContext('2d');ecc.drawImage(v,ex,ey,ew,eh,0,0,40,40);
+      const ed=ecc.getImageData(0,0,40,40).data;
+      let edark=0,emid=0;
+      for(let i=0;i<ed.length;i+=4){const lum=(ed[i]+ed[i+1]+ed[i+2])/3;if(lum<70)edark++;else if(lum<160)emid++;}
+      const total=40*40;
+      eyeFillPct=Math.min(100,Math.round((edark/total)*300));
+      eyeDetected=(edark/total>0.04)&&(emid/total>0.08);
+    }
+    // ── END EYE DETECTION ─────────────────────────────────────────────
+
     setM('light',lp,lp<25?'LOW':lp>88?'HIGH':'OK');
     setM('steady',sp,sp>65?'OK':'MOVE');
     setM('fill',eyeFillPct,eyeFillPct>55?'OK':eyeFillPct>30?'NEAR':'FAR');
@@ -548,37 +587,36 @@ function startQ(){
     if(!tiltOK){
       ov.className='oval warn';qs.textContent='LEVEL PHONE';autoCapReady=0;
       if(now-lastVoice.tilt>4000){speakTxt('Hold phone level, facing your eye directly',false);lastVoice.tilt=now;}
-    } else if(lp<25){
+    }else if(lp<25){
       ov.className='oval bad';qs.textContent='TOO DARK';autoCapReady=0;
       if(now-lastVoice.dark>4000){speak('vdark');lastVoice.dark=now;}
-    } else if(lp>88){
+    }else if(lp>88){
       ov.className='oval warn';qs.textContent='TOO BRIGHT';autoCapReady=0;
       if(now-lastVoice.bright>4000){speak('vbri');lastVoice.bright=now;}
-    } else if(sp<35){
+    }else if(sp<35){
       ov.className='oval warn';qs.textContent='HOLD STILL';autoCapReady=0;
       if(now-lastVoice.still>4000){speak('vstil');lastVoice.still=now;}
-    } else if(!eyeDetected||eyeFillPct<40){
+    }else if(!eyeDetected||eyeFillPct<40){
       ov.className='oval warn';
       qs.textContent=eyeFillPct<20?'MOVE CLOSER':'CENTER EYE';autoCapReady=0;
       if(now-lastVoice.closer>4000){
         speakTxt(eyeFillPct<20?'Move closer to the camera':'Center your eye in the oval',false);
         lastVoice.closer=now;
       }
-    } else {
+    }else{
       autoCapReady++;
-      const countdown=Math.max(0,8-autoCapReady);
+      const countdown=Math.max(0,HOLD_NEEDED-autoCapReady);
       if(countdown>0){
         ov.className='oval warn';
-        qs.textContent='HOLD '+countdown;
-        // Speak countdown numbers at the right moment
-        if(autoCapReady===2)speakTxt('3',false);
-        if(autoCapReady===4)speakTxt('2',false);
-        if(autoCapReady===6)speakTxt('1',false);
-      } else {
+        qs.textContent=countdown<=5?'HOLD '+countdown:'STEADY...';
+        if(autoCapReady===HOLD_NEEDED-3)speakTxt('3',false);
+        if(autoCapReady===HOLD_NEEDED-2)speakTxt('2',false);
+        if(autoCapReady===HOLD_NEEDED-1)speakTxt('1',false);
+      }else{
         ov.className='oval good';
         qs.textContent='CAPTURING ✓';
       }
-      if(autoCapReady>=8&&!autoCapturing&&expStable){autoCapturing=true;doCapture();}
+      if(autoCapReady>=HOLD_NEEDED&&!autoCapturing&&expStable){autoCapturing=true;doCapture();}
     }
     $('capbtn').disabled=!(lp>=25&&lp<=88&&sp>=35&&(eyeDetected||eyeFillPct>=40));
   },250);
@@ -1020,9 +1058,8 @@ function updateAIRecommendation() {
 window.addEventListener('load',()=>{
   loadEmbeddedModels();
   initTilt();
+  initFaceMesh();
   applyLang();
-  initTilt();
-  loadEmbeddedModels();
   if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=()=>{};
   setTimeout(()=>speak('vwel',true),700);
 });
