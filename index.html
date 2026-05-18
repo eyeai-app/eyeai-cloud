@@ -149,9 +149,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .dist-ring{position:absolute;width:200px;height:260px;border:2px dashed rgba(88,166,255,.25);border-radius:50%;pointer-events:none;transition:border-color .3s}
 .dist-ring.close{border-color:rgba(248,81,73,.5)}
 .dist-ring.good{border-color:rgba(63,185,80,.4)}
-.fill-bar-wrap{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:5px;background:rgba(7,9,13,.7);padding:3px 8px;border-radius:20px}
+.fill-bar-wrap{position:absolute;bottom:68px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:5px;background:rgba(7,9,13,.75);padding:3px 8px;border-radius:20px}
 .fill-bar{width:60px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
-.fill-bar::after{content:'';display:block;height:100%;background:var(--green);border-radius:2px;width:var(--fill,0%);transition:width .3s}
+.fill-bar::after{content:'';display:block;height:100%;background:var(--fill-color,var(--green));border-radius:2px;width:var(--fill,0%);transition:width .3s,background .3s}
+.dir-arrow{position:absolute;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.6);border:1.5px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.15rem;opacity:0;transition:opacity .25s;pointer-events:none;z-index:10}
+.dir-arrow.show{opacity:1}
+#arrUp{top:28%;left:50%;transform:translateX(-50%)}
+#arrDn{bottom:21%;left:50%;transform:translateX(-50%)}
+#arrLt{left:4%;top:50%;transform:translateY(-50%)}
+#arrRt{right:4%;top:50%;transform:translateY(-50%)}
 .fill-lbl{font-size:10px;font-family:var(--mono);color:var(--text-dim)}
 canvas{display:none}
 .pchip{flex:1;padding:6px 4px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface);text-align:center;font-size:10px;font-family:var(--mono);color:var(--text-dimmer);line-height:1.4;transition:all .2s}
@@ -299,6 +305,10 @@ async function loadEmbeddedModels(){
         <div class="qrow"><div class="qlbl">STEADY</div><div class="qbar"><div class="qfill" id="qsteady" style="width:0%;background:var(--warn)"></div></div><div class="qval" id="qsteadyv">—</div></div>
         <div class="qrow"><div class="qlbl">EYE FILL</div><div class="qbar"><div class="qfill" id="qfill" style="width:0%;background:var(--warn)"></div></div><div class="qval" id="qfillv">—</div></div>
       </div>
+      <div class="dir-arrow" id="arrUp">↑</div>
+      <div class="dir-arrow" id="arrDn">↓</div>
+      <div class="dir-arrow" id="arrLt">←</div>
+      <div class="dir-arrow" id="arrRt">→</div>
     </div>
   </div>
   <div class="cam-ctrl">
@@ -642,7 +652,7 @@ async function initCam(){
     if(stream)stream.getTracks().forEach(t=>t.stop());
     const f=curCam==='front'?'user':'environment';
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:f}});
-    const v=$('vid');v.srcObject=stream;v.style.transform='none';
+    const v=$('vid');v.srcObject=stream;v.style.transform=curCam==='front'?'scaleX(-1)':'none';
     $('camno').classList.remove('show');
     $('camlbl').textContent=t(curCam==='front'?'fl':'bl');
     startQ();
@@ -698,7 +708,7 @@ async function initFaceMesh(){
 
 function startQ(){
   if(qTimer)clearInterval(qTimer);
-  let lf=null,fn=0,expBuf=[],lastVoice={dark:0,bright:0,still:0,closer:0,tilt:0};
+  let lf=null,fn=0,expBuf=[],lastVoice={dark:0,bright:0,still:0,closer:0,tilt:0,dir:0};
   const HOLD_NEEDED=32; // 8s at 250ms — countdown only begins once face mesh confirms an eye
 
   qTimer=setInterval(()=>{
@@ -731,7 +741,7 @@ function startQ(){
       faceMeshInst.send({image:v}).catch(()=>{}).finally(()=>{fmProcessing=false;});
     }
 
-    let eyeFillPct=0,eyeDetected=false;
+    let eyeFillPct=0,eyeDetected=false,eyeCx=0.5,eyeCy=0.5;
     if(latestLandmarks&&latestLandmarks.length>473){
       // Iris centers: landmark 468=subject-left, 473=subject-right (refineLandmarks:true)
       const iL=latestLandmarks[468],iR=latestLandmarks[473];
@@ -741,8 +751,8 @@ function startQ(){
 
       // Pick whichever eye is closest to the raw-frame center x=0.5 (= oval center)
       const useLeft=Math.abs(iL.x-0.5)<Math.abs(iR.x-0.5);
-      const eyeCx=useLeft?iL.x:iR.x;
-      const eyeCy=useLeft?iL.y:iR.y;
+      eyeCx=useLeft?iL.x:iR.x;
+      eyeCy=useLeft?iL.y:iR.y;
       const eyeW=useLeft?Math.abs(lO.x-lI.x):Math.abs(rO.x-rI.x);
 
       // eyeW ≈ 0.08–0.18 at a good capture distance; scale so 0.15 → 100%
@@ -767,7 +777,8 @@ function startQ(){
     setM('steady',sp,sp>65?'OK':'MOVE');
     setM('fill',eyeFillPct,eyeFillPct>55?'OK':eyeFillPct>30?'NEAR':'FAR');
 
-    const fb=$('fillbar');if(fb)fb.style.setProperty('--fill',eyeFillPct+'%');
+    const fb=$('fillbar');
+    if(fb){fb.style.setProperty('--fill',eyeFillPct+'%');fb.style.setProperty('--fill-color',eyeFillPct>55?'var(--green)':eyeFillPct>30?'var(--warn)':'var(--danger)');}
     const fl=$('filllbl');if(fl)fl.textContent=eyeFillPct+'%';
 
     const dr=$('distring');
@@ -818,6 +829,30 @@ function startQ(){
       }
       if(autoCapReady>=HOLD_NEEDED&&!autoCapturing&&expStable){autoCapturing=true;doCapture();}
     }
+    // ── DIRECTIONAL ARROWS & VOICE ────────────────────────────────────
+    {
+      const THRESH=0.13;
+      let showLt=false,showRt=false,showUp=false,showDn=false;
+      if(eyeDetected&&latestLandmarks&&latestLandmarks.length>473){
+        // Account for front-camera mirror flip on X axis
+        const dispX=curCam==='front'?(1-eyeCx):eyeCx;
+        const dispY=eyeCy;
+        showLt=dispX>0.5+THRESH; // eye appears right of oval → move left
+        showRt=dispX<0.5-THRESH; // eye appears left of oval → move right
+        showUp=dispY<0.5-THRESH; // eye in top half → move phone up
+        showDn=dispY>0.5+THRESH; // eye in bottom half → move phone down
+        if((showLt||showRt||showUp||showDn)&&now-lastVoice.dir>2500){
+          const dirs=[];
+          if(showUp)dirs.push('up');if(showDn)dirs.push('down');
+          if(showLt)dirs.push('left');if(showRt)dirs.push('right');
+          const msg=dirs.length===1?'Move '+dirs[0]:dirs.length===2?'Move '+dirs[0]+' and '+dirs[1]:'Move '+dirs[0];
+          speakTxt(msg,false);lastVoice.dir=now;
+        }
+      }
+      const showArr=[showUp,showDn,showLt,showRt];
+      ['arrUp','arrDn','arrLt','arrRt'].forEach((id,i)=>{const e=$(id);if(e)e.classList.toggle('show',showArr[i]);});
+    }
+    // ── END DIRECTIONAL ARROWS ────────────────────────────────────────
     $('capbtn').disabled=!(lp>=25&&lp<=88&&sp>=35&&(eyeDetected||eyeFillPct>=40));
   },250);
 }
@@ -1341,37 +1376,48 @@ function seededRng(seed){
 function drawCBPlate(canvas,numStr,seed){
   const W=canvas.width,H=canvas.height,R=W/2;
   const ctx=canvas.getContext('2d');
-  // Build digit mask
+  const rng=seededRng(seed);
+
+  // Build digit mask — bold text, centred
   const mc=document.createElement('canvas');mc.width=W;mc.height=H;
   const mctx=mc.getContext('2d');
   mctx.fillStyle='#000';mctx.fillRect(0,0,W,H);
   mctx.fillStyle='#fff';
-  const fs=numStr.length===1?Math.round(W*.52):Math.round(W*.36);
+  const fs=numStr.length===1?Math.round(W*.50):Math.round(W*.34);
   mctx.font=`bold ${fs}px Arial,sans-serif`;
   mctx.textAlign='center';mctx.textBaseline='middle';
   mctx.fillText(numStr,W/2,H/2);
   const mask=mctx.getImageData(0,0,W,H).data;
-  // Draw plate
+
   ctx.clearRect(0,0,W,H);
   ctx.save();
   ctx.beginPath();ctx.arc(R,R,R-1,0,Math.PI*2);ctx.clip();
-  ctx.fillStyle='#787878';ctx.fillRect(0,0,W,H);
-  const rng=seededRng(seed);
-  for(let i=0;i<540;i++){
-    const x=rng()*W,y=rng()*H;
-    if((x-R)**2+(y-R)**2>(R-3)**2)continue;
-    const r=4+rng()*9;
-    const mx=Math.min(W-1,Math.max(0,Math.floor(x)));
-    const my=Math.min(H-1,Math.max(0,Math.floor(y)));
-    const isDigit=mask[(my*W+mx)*4]>128;
-    // Digit: red-orange (hue 5–30), background: green (hue 90–145)
-    // Both share lightness 38–55% → luminance-matched, only hue differs
-    const hue=isDigit?5+rng()*25:90+rng()*55;
-    const sat=48+rng()*28;
-    const lit=38+rng()*17;
-    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle=`hsl(${hue},${sat}%,${lit}%)`;
-    ctx.fill();
+
+  // Grid-based placement with jitter — guarantees dense, gapless coverage
+  // Spacing 10px → ~730 grid cells for a 270px plate; jitter keeps it natural
+  const spacing=10;
+  for(let gy=0;gy<H+spacing;gy+=spacing){
+    for(let gx=0;gx<W+spacing;gx+=spacing){
+      const x=gx+(rng()-0.5)*spacing*1.5;
+      const y=gy+(rng()-0.5)*spacing*1.5;
+      if((x-R)**2+(y-R)**2>(R-1)**2)continue;
+      const dotR=3.5+rng()*4; // 3.5–7.5 px radius — small, clinically realistic
+
+      const mx=Math.min(W-1,Math.max(0,Math.floor(x)));
+      const my=Math.min(H-1,Math.max(0,Math.floor(y)));
+      const isDigit=mask[(my*W+mx)*4]>128;
+
+      // Digit dots: red-orange (hue 0–25°)
+      // Background dots: green-teal (hue 95–145°)
+      // BOTH: identical lightness range 40–56% → only hue differs, not brightness
+      const hue=isDigit?rng()*25:95+rng()*50;
+      const sat=50+rng()*24; // 50–74%
+      const lit=40+rng()*16; // 40–56% — same range for digit AND background
+
+      ctx.beginPath();ctx.arc(x,y,dotR,0,Math.PI*2);
+      ctx.fillStyle=`hsl(${hue},${sat}%,${lit}%)`;
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
