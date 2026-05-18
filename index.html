@@ -242,6 +242,22 @@ async function loadEmbeddedModels(){
 <div class="app">
 <button class="g-mute" id="gMute" onclick="tVoiceGlobal()" title="Mute/unmute voice">🔊</button>
 
+<!-- TAP TO BEGIN -->
+<div id="tapScreen" onclick="onTapBegin()" style="position:fixed;inset:0;z-index:700;background:#07090d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;cursor:pointer;user-select:none;-webkit-user-select:none">
+  <div style="width:64px;height:64px;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:18px;height:18px;background:var(--accent);border-radius:50%;animation:blink 2.5s ease-in-out infinite"></div></div>
+  <div style="font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.2em;margin-top:.2rem">EYEAI</div>
+  <div style="font-size:1.75rem;font-weight:700;color:var(--text);margin-top:.3rem">Tap to Begin</div>
+  <div id="tapLbl" style="font-size:13px;color:var(--text-dim);text-align:center;line-height:1.6;max-width:230px">Touch anywhere to start your<br>eye health check</div>
+</div>
+
+<!-- SESSION RECOVERY -->
+<div id="recoverScreen" style="position:fixed;inset:0;z-index:690;background:#07090d;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:2rem">
+  <div style="font-size:1.25rem;font-weight:700;color:var(--text)">Welcome back</div>
+  <div style="font-size:13px;color:var(--text-dim);text-align:center;line-height:1.7;max-width:280px" id="recoverTxt">You have a saved vision test session.</div>
+  <button class="btn-p" style="max-width:300px;width:100%;margin-top:.5rem" onclick="doRecover()">Continue where I left off →</button>
+  <button class="btn-s" style="max-width:300px;width:100%" onclick="doStartOver()">Start over</button>
+</div>
+
 <!-- S1 WELCOME -->
 <div class="screen active" id="s1">
   <div class="s-hdr">
@@ -472,7 +488,7 @@ const TR={
 };
 
 let lang='en',voiceOn=true,who='self',curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
-let photos={left:null,right:null},scores={both:null,left:null,right:null,cb:null},tPhase='both',tRow=0,tActive=false,hist=[];
+let photos={left:null,right:null},scores={both:null,left:null,right:null,cb:null},tPhase='both',tRow=0,tActive=false,tStarted=false,tPaused=false,hist=[];
 let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
 let distStream=null,distTimer=null,distConfirm=0,testMode='near',lastDistVoice=0;
@@ -1087,6 +1103,8 @@ function initTest(){
 }
 
 function startVisionTest(){
+  if(tStarted)return;
+  tStarted=true;
   $('t-setup').style.display='none';$('t-run').style.display='none';
   scores={both:null,left:null,right:null,cb:null};tRow=0;tActive=true;
   enterFS();
@@ -1095,7 +1113,8 @@ function startVisionTest(){
 }
 
 function runPhase(ph){
-  tPhase=ph;tRow=0;tActive=true;
+  if(tPhase===ph&&tActive)return;
+  tPhase=ph;tRow=0;tActive=true;tPaused=false;
   const instrTxt=ph==='both'?'Keep both eyes open':ph==='left'?'Cover your RIGHT eye':'Cover your LEFT eye';
   ['both','left','right'].forEach((p,i)=>{
     ['ph'+i,'fsPh'+i].forEach(id=>{
@@ -1137,14 +1156,17 @@ function saveTS(ri){
     ['ph'+i,'fsPh'+i].forEach(id=>{const chip=$(id);if(chip&&p===tPhase)chip.className='pchip done';});
   });
   if(tPhase==='both'){
+    saveSession();
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:1.5rem 0;text-align:center;color:var(--text-dim)">Now cover your <strong style="color:var(--text)">right</strong> eye</div>';});
     speakTxt('Well done. Now please cover your right eye.',true,0.65);
     setTimeout(()=>runPhase('left'),2500);
   }else if(tPhase==='left'){
+    saveSession();
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:1.5rem 0;text-align:center;color:var(--text-dim)">Now cover your <strong style="color:var(--text)">left</strong> eye</div>';});
     speakTxt('Good. Now please cover your left eye.',true,0.65);
     setTimeout(()=>runPhase('right'),2500);
   }else{
+    clearSession();
     stopDistCam();
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="text-align:center;padding:2rem 0"><div style="font-size:2.2rem;margin-bottom:.6rem">✓</div><div style="font-size:1.25rem;font-weight:700;color:var(--green);margin-bottom:.5rem">Test complete!</div><div style="font-size:13px;color:var(--text-dim)">Preparing color vision check…</div></div>';});
     speakTxt("Well done, first test complete. Now let's check your color vision. Get ready.",true);
@@ -1153,10 +1175,10 @@ function saveTS(ri){
 }
 
 function skipTest(){
-  tActive=false;stopDistCam();exitFS();exitCBFS();
-  scores.cb=null;showRes();
+  tActive=false;tStarted=false;tPaused=false;stopDistCam();exitFS();exitCBFS();
+  clearSession();scores.cb=null;showRes();
 }
-function skipTestFS(){tActive=false;stopDistCam();exitFS();exitCBFS();scores.cb=null;showRes();}
+function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();exitFS();exitCBFS();clearSession();scores.cb=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1227,9 +1249,89 @@ function doShare(){
   else navigator.clipboard?.writeText(txt).then(()=>alert('Copied to clipboard'));
 }
 
+// ── SESSION MEMORY ────────────────────────────────────────────────
+const SESSION_KEY='eyeai_sess';
+function saveSession(){
+  try{localStorage.setItem(SESSION_KEY,JSON.stringify({scores:{...scores},timestamp:Date.now()}));}catch(e){}
+}
+function loadSession(){
+  try{
+    const d=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
+    if(!d)return null;
+    if(Date.now()-d.timestamp>86400000){clearSession();return null;}
+    return d;
+  }catch(e){return null;}
+}
+function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
+
+function showRecoverUI(saved){
+  const rs=$('recoverScreen');if(!rs)return;
+  const s=saved.scores;
+  const done=[];
+  if(s.both!==null)done.push('both eyes');
+  if(s.left!==null)done.push('left eye');
+  if(s.right!==null)done.push('right eye');
+  const nextPh=s.right!==null?null:s.left!==null?'Right eye':s.both!==null?'Left eye':'Both eyes';
+  let txt=done.length?'Completed: '+done.join(', ')+'.':'';
+  if(nextPh)txt+=(txt?' ':'')+' Next up: '+nextPh+' test.';
+  $('recoverTxt').textContent=txt||'You have a saved vision test.';
+  rs.style.display='flex';
+  window._savedSession=saved;
+}
+function doRecover(){
+  $('recoverScreen').style.display='none';
+  const saved=window._savedSession;if(!saved)return;
+  scores={...saved.scores};
+  photos={left:null,right:null};
+  const s=saved.scores;
+  let nextPh='both';
+  if(s.both!==null&&s.left===null)nextPh='left';
+  else if(s.both!==null&&s.left!==null&&s.right===null)nextPh='right';
+  else if(s.right!==null){clearSession();go('s5');showRes();return;}
+  go('s4');
+  tStarted=true;tRow=0;tPaused=false;distConfirm=0;
+  setTestMode('near');startDistCam(true);
+  enterFS();
+  speakTxt("Welcome back. Let's continue your vision test.",true,0.65);
+  setTimeout(()=>{tActive=true;runPhase(nextPh);},1500);
+}
+function doStartOver(){
+  $('recoverScreen').style.display='none';
+  clearSession();window._savedSession=null;
+  speakTxt("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",true,0.65);
+}
+
+function onTapBegin(){
+  const ts=$('tapScreen');
+  if(!ts||ts.dataset.tapped)return;
+  ts.dataset.tapped='1';
+  unlockAudio();
+  const lbl=$('tapLbl');if(lbl)lbl.textContent='Starting…';
+  const proceed=()=>{
+    ts.style.display='none';
+    const saved=loadSession();
+    if(saved&&(saved.scores.both!==null||saved.scores.left!==null||saved.scores.right!==null)){
+      showRecoverUI(saved);
+    }
+  };
+  if(!voiceOn){proceed();return;}
+  const doSpeak=()=>{
+    const txt="Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.";
+    setVtxt(txt);setVon(true);synth.cancel();
+    const u=new SpeechSynthesisUtterance(txt);
+    _applyVoice(u);u.rate=0.65;
+    u.onend=()=>{setVon(false);proceed();};
+    synth.speak(u);
+    setTimeout(()=>{if(ts.style.display!=='none')proceed();},15000);
+  };
+  if(_voiceReadyPromise)_voiceReadyPromise.then(doSpeak);else doSpeak();
+}
+// ── END SESSION MEMORY ────────────────────────────────────────────
+
 function resetAll(){
   photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null};
   curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];
+  tStarted=false;tPaused=false;clearSession();
   stopDistCam();exitFS();exitCBFS();
 }
 
@@ -1328,10 +1430,21 @@ function updateDistBar(eyeSpan){
   const fsf=$('fsDistFill');if(fsf){fsf.style.width=barPct+'%';fsf.style.background=color;}
   if(lbl)lbl.textContent='📐 Target: '+tgt.label;
   if(status)status.textContent=statusTxt;
+  // Pause letter test when distance goes wrong; resume when it returns to green
+  if(tStarted&&tActive&&!inRange){
+    tPaused=true;tActive=false;voiceTxt=null;
+    speakTxt(tooClose?'Move a little further back.':'Move closer to the screen.',true);
+    ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:2rem 1rem;text-align:center"><div style="font-size:1.4rem;margin-bottom:.5rem">⏸</div><div style="color:var(--warn);font-weight:600;margin-bottom:.4rem">Test paused</div><div style="font-size:12px;color:var(--text-dim)">'+(tooClose?'Move phone a little further back':'Move phone a little closer')+'</div></div>';});
+  }
+  if(tStarted&&tPaused&&inRange){
+    tPaused=false;tActive=true;voiceTxt=null;
+    speakTxt('Perfect. Resuming test.',true);
+    setTimeout(()=>renderCh(),800);
+  }
   if(voiceTxt){speakTxt(voiceTxt,false);lastDistVoice=Date.now();}
   if(distConfirm>=8){
     if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='Distance confirmed — tap to start →';}
-    if(distConfirm===8){speakTxt('Great. Starting the test.',true);setTimeout(startVisionTest,1400);}
+    if(distConfirm===8&&!tStarted){speakTxt('Great. Starting the test.',true);setTimeout(startVisionTest,1400);}
   }else{
     if(btn&&btn.disabled===false&&distConfirm<8){btn.disabled=true;btn.style.opacity='.4';}
   }
@@ -1605,8 +1718,7 @@ window.addEventListener('load',()=>{
   initTilt();
   initFaceMesh();
   applyLang();
-  // Wait for voices to load (handles Chrome sync load, iOS async, and Safari polling)
-  initVoices().then(()=>setTimeout(()=>speakTxt("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",true,0.65),300));
+  initVoices(); // pre-load voices so they're ready when user taps
 });
 </script>
 </body>
