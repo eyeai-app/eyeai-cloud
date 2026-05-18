@@ -429,6 +429,7 @@ async function loadEmbeddedModels(){
 
 <!-- FULLSCREEN LETTER TEST OVERLAY -->
 <div class="fs-ov" id="fsOv">
+  <div style="height:4px;width:100%;flex-shrink:0;background:rgba(255,255,255,.08)"><div id="fsDistFill" style="height:100%;width:8%;background:var(--text-dimmer);transition:width .3s,background .3s"></div></div>
   <div class="fs-body">
     <div class="fs-chart" id="fsChart"></div>
   </div>
@@ -596,13 +597,14 @@ function speak(key,force=false){
   synth.speak(u);
 }
 
-function speakTxt(txt,force=false){
+function speakTxt(txt,force=false,rate=null){
   setVtxt(txt);
   if(!voiceOn)return;
   setVon(true);
   if(force)synth.cancel();
   const u=new SpeechSynthesisUtterance(txt);
   _applyVoice(u);
+  if(rate!==null)u.rate=rate;
   u.onend=()=>setVon(false);
   synth.speak(u);
 }
@@ -1078,12 +1080,13 @@ function initTest(){
   scores={both:null,left:null,right:null,cb:null};tPhase='both';tRow=0;tActive=false;
   $('t-setup').style.display='';$('t-run').style.display='none';
   distConfirm=0;setTestMode('near');
-  speak('vboth',true);
-  startDistCam();
+  setTimeout(()=>{
+    speakTxt("Great, photo taken. Now let's check your vision. Please hold your phone about 40 centimeters away.",true,0.65);
+    setTimeout(()=>startDistCam(true),2500);
+  },2000);
 }
 
 function startVisionTest(){
-  stopDistCam();
   $('t-setup').style.display='none';$('t-run').style.display='none';
   scores={both:null,left:null,right:null,cb:null};tRow=0;tActive=true;
   enterFS();
@@ -1104,8 +1107,6 @@ function runPhase(ph){
   });
   ['tis','fsTis'].forEach(id=>{const e=$(id);if(e)e.textContent=instrTxt;});
   ['tir','fsTir'].forEach(id=>{const e=$(id);if(e)e.textContent='Read the letters, then tap your answer';});
-  if(ph==='left')setTimeout(()=>speak('cr',true),400);
-  else if(ph==='right')setTimeout(()=>speak('cl',true),400);
   renderCh();buildProg();
 }
 
@@ -1137,13 +1138,14 @@ function saveTS(ri){
   });
   if(tPhase==='both'){
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:1.5rem 0;text-align:center;color:var(--text-dim)">Now cover your <strong style="color:var(--text)">right</strong> eye</div>';});
-    speakTxt('Great. Now cover your right eye with your hand.',true);
-    setTimeout(()=>runPhase('left'),1400);
+    speakTxt('Well done. Now please cover your right eye.',true,0.65);
+    setTimeout(()=>runPhase('left'),2500);
   }else if(tPhase==='left'){
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:1.5rem 0;text-align:center;color:var(--text-dim)">Now cover your <strong style="color:var(--text)">left</strong> eye</div>';});
-    speakTxt('Good. Now swap — cover your left eye.',true);
-    setTimeout(()=>runPhase('right'),1400);
+    speakTxt('Good. Now please cover your left eye.',true,0.65);
+    setTimeout(()=>runPhase('right'),2500);
   }else{
+    stopDistCam();
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="text-align:center;padding:2rem 0"><div style="font-size:2.2rem;margin-bottom:.6rem">✓</div><div style="font-size:1.25rem;font-weight:700;color:var(--green);margin-bottom:.5rem">Test complete!</div><div style="font-size:13px;color:var(--text-dim)">Preparing color vision check…</div></div>';});
     speakTxt("Well done, first test complete. Now let's check your color vision. Get ready.",true);
     setTimeout(()=>{exitFS();initCBTest();},4500);
@@ -1154,7 +1156,7 @@ function skipTest(){
   tActive=false;stopDistCam();exitFS();exitCBFS();
   scores.cb=null;showRes();
 }
-function skipTestFS(){tActive=false;exitFS();exitCBFS();scores.cb=null;showRes();}
+function skipTestFS(){tActive=false;stopDistCam();exitFS();exitCBFS();scores.cb=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1251,15 +1253,17 @@ function setTestMode(m){
   if(btn){btn.disabled=true;btn.style.opacity='.4';btn.textContent='Hold at correct distance to start';}
 }
 
-async function startDistCam(){
+async function startDistCam(skipVoice=false){
   try{
     if(distStream)distStream.getTracks().forEach(t=>t.stop());
     distStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:320},height:{ideal:240}}});
     const dv=$('distVid');dv.srcObject=distStream;
     await dv.play().catch(()=>{});
     startDistQ();
-    const tgt=DIST_TGT[testMode];
-    setTimeout(()=>speakTxt('Hold the screen at '+tgt.label+' from your face. The bar will turn green when the distance is right.',true),500);
+    if(!skipVoice){
+      const tgt=DIST_TGT[testMode];
+      setTimeout(()=>speakTxt('Hold the screen at '+tgt.label+' from your face. The bar will turn green when the distance is right.',true),500);
+    }
   }catch(e){
     // Camera unavailable — let user start manually
     const btn=$('t-ready-btn');
@@ -1321,6 +1325,7 @@ function updateDistBar(eyeSpan){
     if(Date.now()-lastDistVoice>3500)voiceTxt=veryFar?'Move closer to the screen.':'A little closer.';
   }
   fill.style.width=barPct+'%';fill.style.background=color;
+  const fsf=$('fsDistFill');if(fsf){fsf.style.width=barPct+'%';fsf.style.background=color;}
   if(lbl)lbl.textContent='📐 Target: '+tgt.label;
   if(status)status.textContent=statusTxt;
   if(voiceTxt){speakTxt(voiceTxt,false);lastDistVoice=Date.now();}
@@ -1601,7 +1606,7 @@ window.addEventListener('load',()=>{
   initFaceMesh();
   applyLang();
   // Wait for voices to load (handles Chrome sync load, iOS async, and Safari polling)
-  initVoices().then(()=>setTimeout(()=>speak('vwel',true),300));
+  initVoices().then(()=>setTimeout(()=>speakTxt("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",true,0.65),300));
 });
 </script>
 </body>
