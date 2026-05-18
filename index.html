@@ -462,7 +462,7 @@ async function loadEmbeddedModels(){
   <div class="fs-body" id="calBody" style="align-items:center;justify-content:center;gap:1.3rem;padding:2rem 1.5rem"></div>
   <div class="fs-ctrl" style="gap:1rem">
     <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);flex-shrink:0" id="calProg">1 / 4</span>
-    <button class="fs-btn" onclick="calNext()" style="flex:1;text-align:center;padding:12px 20px">Next →</button>
+    <button class="fs-btn" id="calNextBtn" onclick="calNext()" style="flex:1;text-align:center;padding:12px 20px">Next →</button>
   </div>
 </div>
 
@@ -1111,7 +1111,7 @@ function doRetake(){
   scores={both:null,left:null,right:null,cb:null};
   tPhase='both';tRow=0;tActive=false;tStarted=false;tPaused=false;
   clearSession();
-  stopDistCam();exitFS();exitCBFS();
+  stopDistCam();exitCalib();exitFS();exitCBFS();
   synth.cancel();
   go('s2');startQ();speak('vcam',true);
 }
@@ -1299,14 +1299,15 @@ function showCalSlide(idx){
   calIdx=idx;synth.cancel();
   const slide=CAL_SLIDES[idx];
   const prog=$('calProg');if(prog)prog.textContent=(idx+1)+' / '+CAL_SLIDES.length;
+  const btn=$('calNextBtn');if(btn)btn.textContent=idx===CAL_SLIDES.length-1?'Begin Test →':'Next →';
   const body=$('calBody');if(!body)return;
   if(slide.blur===null){
-    body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">Instructions</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px"></div><div style="font-size:1.05rem;color:var(--text);text-align:center;line-height:1.95;max-width:300px">During the test, only tap<br><span style="color:var(--green);font-weight:700;font-size:1.15rem">✓ Can Read</span><br>if the letter is <strong>completely clear</strong>.<br><br>If it is blurry even slightly — tap<br><span style="color:var(--danger);font-weight:700;font-size:1.15rem">✗ Cannot Read</span><br><br>Your honest answer<br>protects your health.</div>';
+    body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">Instructions</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px;margin-bottom:.5rem"></div><div style="font-size:1.05rem;color:var(--text);text-align:center;line-height:2;max-width:300px">Only tap<br><span style="color:var(--green);font-weight:700;font-size:1.15rem">✓ Can Read</span><br>if the letter is <strong>completely clear and sharp</strong>.<br><br>If it is blurry even slightly — tap<br><span style="color:var(--danger);font-weight:700;font-size:1.15rem">✗ Cannot Read</span><br><br><span style="font-size:.9rem;color:var(--text-dim)">Your honest answer protects your health.</span></div>';
   }else{
     const caps=['Crystal clear — this is the goal','Mild blur — already reduced vision','Significant blur — not acceptable'];
-    body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">'+slide.label+'</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px"></div><div style="filter:blur('+slide.blur+'px);font-family:\'Courier New\',monospace;font-size:120px;font-weight:700;color:#fff;line-height:1;text-align:center;user-select:none;padding:.5rem 2rem">E</div><div style="font-size:12px;color:var(--text-dim);text-align:center;line-height:1.5;max-width:260px">'+caps[idx]+'</div>';
+    body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">'+slide.label+'</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px"></div><div style="filter:blur('+slide.blur+'px);font-family:\'Courier New\',monospace;font-size:130px;font-weight:700;color:#fff;line-height:1;text-align:center;user-select:none;padding:.5rem 2rem;-webkit-filter:blur('+slide.blur+'px)">E</div><div style="font-size:13px;color:var(--text-dim);text-align:center;line-height:1.5;max-width:260px">'+caps[idx]+'</div>';
   }
-  speakTxt(slide.voice,true,0.75);
+  speakTxt(slide.voice,true,0.65);
 }
 function calNext(){
   synth.cancel();
