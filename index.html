@@ -457,6 +457,15 @@ async function loadEmbeddedModels(){
   </div>
 </div>
 
+<!-- CALIBRATION OVERLAY -->
+<div class="fs-ov" id="calOv">
+  <div class="fs-body" id="calBody" style="align-items:center;justify-content:center;gap:1.3rem;padding:2rem 1.5rem"></div>
+  <div class="fs-ctrl" style="gap:1rem">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);flex-shrink:0" id="calProg">1 / 4</span>
+    <button class="fs-btn" onclick="calNext()" style="flex:1;text-align:center;padding:12px 20px">Next →</button>
+  </div>
+</div>
+
 <!-- FULLSCREEN COLOR TEST OVERLAY -->
 <div class="fs-ov" id="cbOv">
   <div class="fs-body" style="justify-content:center;gap:1rem;overflow-y:auto">
@@ -622,6 +631,19 @@ function speakTxt(txt,force=false,rate=null){
   _applyVoice(u);
   if(rate!==null)u.rate=rate;
   u.onend=()=>setVon(false);
+  synth.speak(u);
+}
+
+function speakThenDo(txt,rate,pauseAfter,callback){
+  synth.cancel();
+  setVtxt(txt);
+  if(!voiceOn){setTimeout(callback,pauseAfter);return;}
+  setVon(true);
+  const u=new SpeechSynthesisUtterance(txt);
+  _applyVoice(u);
+  if(rate!==null)u.rate=rate;
+  u.onend=()=>{setVon(false);setTimeout(callback,pauseAfter);};
+  u.onerror=()=>{setVon(false);setTimeout(callback,pauseAfter);};
   synth.speak(u);
 }
 
@@ -1108,8 +1130,7 @@ function initTest(){
   $('t-setup').style.display='';$('t-run').style.display='none';
   distConfirm=0;setTestMode('near');
   setTimeout(()=>{
-    speakTxt("Great. Now let's begin your vision test. Please hold your phone about 40 centimeters away.",true,0.65);
-    setTimeout(()=>startDistCam(true),3000);
+    speakThenDo("Great. Now let's begin your vision test.",0.65,1000,()=>enterCalib());
   },2500);
 }
 
@@ -1119,8 +1140,7 @@ function startVisionTest(){
   $('t-setup').style.display='none';$('t-run').style.display='none';
   scores={both:null,left:null,right:null,cb:null};tRow=0;tActive=true;
   enterFS();
-  speakTxt('Both eyes open. Read the letters on screen, then tap Correct or Cannot read.',true);
-  setTimeout(()=>runPhase('both'),600);
+  speakThenDo('Both eyes open. Read the letters on screen, then tap Correct or Cannot read.',null,600,()=>runPhase('both'));
 }
 
 function runPhase(ph){
@@ -1168,27 +1188,24 @@ function saveTS(ri){
   if(tPhase==='both'){
     saveSession();
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:1.5rem 0;text-align:center;color:var(--text-dim)">Now cover your <strong style="color:var(--text)">right</strong> eye</div>';});
-    speakTxt('Well done. Now please cover your right eye.',true,0.65);
-    setTimeout(()=>runPhase('left'),2500);
+    speakThenDo('Well done. Now please cover your right eye.',0.65,2000,()=>runPhase('left'));
   }else if(tPhase==='left'){
     saveSession();
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:1.5rem 0;text-align:center;color:var(--text-dim)">Now cover your <strong style="color:var(--text)">left</strong> eye</div>';});
-    speakTxt('Good. Now please cover your left eye.',true,0.65);
-    setTimeout(()=>runPhase('right'),2500);
+    speakThenDo('Good. Now please cover your left eye.',0.65,2000,()=>runPhase('right'));
   }else{
     clearSession();
     stopDistCam();
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="text-align:center;padding:2rem 0"><div style="font-size:2.2rem;margin-bottom:.6rem">✓</div><div style="font-size:1.25rem;font-weight:700;color:var(--green);margin-bottom:.5rem">Test complete!</div><div style="font-size:13px;color:var(--text-dim)">Preparing color vision check…</div></div>';});
-    speakTxt("Well done, first test complete. Now let's check your color vision. Get ready.",true);
-    setTimeout(()=>{exitFS();initCBTest();},4500);
+    speakThenDo("Well done, first test complete. Now let's check your color vision. Get ready.",null,2000,()=>{exitFS();initCBTest();});
   }
 }
 
 function skipTest(){
-  tActive=false;tStarted=false;tPaused=false;stopDistCam();exitFS();exitCBFS();
+  tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();
   clearSession();scores.cb=null;showRes();
 }
-function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();exitFS();exitCBFS();clearSession();scores.cb=null;showRes();}
+function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();clearSession();scores.cb=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1259,6 +1276,49 @@ function doShare(){
   else navigator.clipboard?.writeText(txt).then(()=>alert('Copied to clipboard'));
 }
 
+// ── CALIBRATION ───────────────────────────────────────────────────
+const CAL_SLIDES=[
+  {blur:0,   label:'Normal vision', voice:"This is what normal clear vision looks like. You should be able to read this instantly and effortlessly."},
+  {blur:2.5, label:'Mild blur',     voice:"This is mild blur. If letters look like this to you, that is already reduced vision — even if you can still read them."},
+  {blur:6,   label:'Moderate blur', voice:"This is moderate blur. Many people think this is normal because they can still recognize the shape. It is not normal."},
+  {blur:null,label:'Instructions',  voice:"During the test, only mark Can Read if the letter is completely clear. If it is blurry even slightly — mark Cannot Read. Your honest answer protects your health."}
+];
+let calIdx=0;
+
+function enterCalib(){
+  calIdx=0;
+  const ov=$('calOv');if(ov)ov.classList.add('show');
+  try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}catch(e){}
+  showCalSlide(0);
+}
+function exitCalib(){
+  synth.cancel();
+  const ov=$('calOv');if(ov)ov.classList.remove('show');
+}
+function showCalSlide(idx){
+  calIdx=idx;synth.cancel();
+  const slide=CAL_SLIDES[idx];
+  const prog=$('calProg');if(prog)prog.textContent=(idx+1)+' / '+CAL_SLIDES.length;
+  const body=$('calBody');if(!body)return;
+  if(slide.blur===null){
+    body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">Instructions</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px"></div><div style="font-size:1.05rem;color:var(--text);text-align:center;line-height:1.95;max-width:300px">During the test, only tap<br><span style="color:var(--green);font-weight:700;font-size:1.15rem">✓ Can Read</span><br>if the letter is <strong>completely clear</strong>.<br><br>If it is blurry even slightly — tap<br><span style="color:var(--danger);font-weight:700;font-size:1.15rem">✗ Cannot Read</span><br><br>Your honest answer<br>protects your health.</div>';
+  }else{
+    const caps=['Crystal clear — this is the goal','Mild blur — already reduced vision','Significant blur — not acceptable'];
+    body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">'+slide.label+'</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px"></div><div style="filter:blur('+slide.blur+'px);font-family:\'Courier New\',monospace;font-size:120px;font-weight:700;color:#fff;line-height:1;text-align:center;user-select:none;padding:.5rem 2rem">E</div><div style="font-size:12px;color:var(--text-dim);text-align:center;line-height:1.5;max-width:260px">'+caps[idx]+'</div>';
+  }
+  speakTxt(slide.voice,true,0.75);
+}
+function calNext(){
+  synth.cancel();
+  if(calIdx<CAL_SLIDES.length-1){
+    showCalSlide(calIdx+1);
+  }else{
+    exitCalib();
+    speakThenDo('Please hold your phone about 40 centimeters from your face. The test will begin automatically when the distance is right.',0.65,500,()=>startDistCam(true));
+  }
+}
+// ── END CALIBRATION ───────────────────────────────────────────────
+
 // ── SESSION MEMORY ────────────────────────────────────────────────
 const SESSION_KEY='eyeai_sess';
 function saveSession(){
@@ -1302,8 +1362,7 @@ function doRecover(){
   tStarted=true;tRow=0;tPaused=false;distConfirm=0;
   setTestMode('near');startDistCam(true);
   enterFS();
-  speakTxt("Welcome back. Let's continue your vision test.",true,0.65);
-  setTimeout(()=>{tActive=true;runPhase(nextPh);},1500);
+  speakThenDo("Welcome back. Let's continue your vision test.",0.65,1000,()=>{tActive=true;runPhase(nextPh);});
 }
 function doStartOver(){
   $('recoverScreen').style.display='none';
@@ -1342,7 +1401,7 @@ function resetAll(){
   photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null};
   curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];
   tStarted=false;tPaused=false;clearSession();
-  stopDistCam();exitFS();exitCBFS();
+  stopDistCam();exitCalib();exitFS();exitCBFS();
 }
 
 // ── DISTANCE CAMERA & MEASUREMENT ────────────────────────────────
