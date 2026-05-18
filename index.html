@@ -1082,7 +1082,17 @@ function analyseQ(url){
   };img.src=url;
 }
 
-function doRetake(){autoCapReady=0;autoCapturing=false;go('s2');startQ();speak('vcam',true);}
+function doRetake(){
+  // Full reset so capture + full test flow starts completely fresh
+  autoCapReady=0;autoCapturing=false;
+  photos[curEye]=null;
+  scores={both:null,left:null,right:null,cb:null};
+  tPhase='both';tRow=0;tActive=false;tStarted=false;tPaused=false;
+  clearSession();
+  stopDistCam();exitFS();exitCBFS();
+  synth.cancel();
+  go('s2');startQ();speak('vcam',true);
+}
 
 function usePhoto(){
   const ld=photos.left!==null,rd=photos.right!==null;
@@ -1094,12 +1104,13 @@ function usePhoto(){
 
 function initTest(){
   scores={both:null,left:null,right:null,cb:null};tPhase='both';tRow=0;tActive=false;
+  tStarted=false;tPaused=false;clearSession();
   $('t-setup').style.display='';$('t-run').style.display='none';
   distConfirm=0;setTestMode('near');
   setTimeout(()=>{
-    speakTxt("Great, photo taken. Now let's check your vision. Please hold your phone about 40 centimeters away.",true,0.65);
-    setTimeout(()=>startDistCam(true),2500);
-  },2000);
+    speakTxt("Great. Now let's begin your vision test. Please hold your phone about 40 centimeters away.",true,0.65);
+    setTimeout(()=>startDistCam(true),3000);
+  },2500);
 }
 
 function startVisionTest(){
@@ -1113,7 +1124,6 @@ function startVisionTest(){
 }
 
 function runPhase(ph){
-  if(tPhase===ph&&tActive)return;
   tPhase=ph;tRow=0;tActive=true;tPaused=false;
   const instrTxt=ph==='both'?'Keep both eyes open':ph==='left'?'Cover your RIGHT eye':'Cover your LEFT eye';
   ['both','left','right'].forEach((p,i)=>{
