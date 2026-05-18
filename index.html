@@ -427,45 +427,34 @@ async function loadEmbeddedModels(){
   </div>
 </div>
 
-<!-- FULLSCREEN VISION TEST OVERLAY -->
+<!-- FULLSCREEN LETTER TEST OVERLAY -->
 <div class="fs-ov" id="fsOv">
   <div class="fs-body">
-    <div style="display:flex;gap:5px;width:100%">
-      <div class="pchip" id="fsPh0">👁👁<br>Both</div>
-      <div class="pchip" id="fsPh1">👁<br>Left</div>
-      <div class="pchip" id="fsPh2">👁<br>Right</div>
-    </div>
-    <div class="dtip" style="width:100%"><div class="pdot"></div><span id="fsTis">Keep both eyes open</span></div>
-    <div class="fs-prog" id="fsProg"></div>
     <div class="fs-chart" id="fsChart"></div>
-    <div class="tinstr" style="width:100%;text-align:center" id="fsTir">Read the letters, then tap your answer</div>
-    <div class="fs-arow">
-      <button class="fs-abtn" id="fsAcor" onclick="ans(true)">✓ Correct</button>
-      <button class="fs-abtn" id="fsAwrg" onclick="ans(false)">✗ Can't read</button>
-    </div>
   </div>
   <div class="fs-ctrl">
-    <button class="fs-btn" id="fsMuteBtn" onclick="tVoiceGlobal()">🔊</button>
-    <button class="fs-btn" onclick="skipTestFS()" style="flex:1">Skip remaining</button>
+    <button class="fs-btn" onclick="fsBack()" style="flex-shrink:0">← Back</button>
+    <button class="fs-abtn" id="fsAcor" onclick="ans(true)">✓ Can Read</button>
+    <button class="fs-abtn" id="fsAwrg" onclick="ans(false)">✗ Cannot Read</button>
+    <button class="fs-btn" onclick="skipTestFS()" style="flex-shrink:0">Skip</button>
   </div>
 </div>
 
-<!-- S6 COLOR BLINDNESS TEST -->
-<div class="screen" id="s6">
-  <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div><button class="lang-btn" onclick="tLang()" id="lb6">עברית</button></div>
-  <div class="vbar" id="vb6"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb6t">Color vision test</div></div>
-  <div class="content">
-    <div style="text-align:center">
-      <div style="font-size:1rem;font-weight:700;margin-bottom:3px">Color Vision Check</div>
-      <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer)" id="cbPlateNum">1 / 4</div>
+<!-- FULLSCREEN COLOR TEST OVERLAY -->
+<div class="fs-ov" id="cbOv">
+  <div class="fs-body" style="justify-content:center;gap:1rem;overflow-y:auto">
+    <div style="text-align:center;flex-shrink:0">
+      <div style="font-size:.9rem;font-weight:600;color:var(--text-dim)">Color Vision</div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);margin-top:2px" id="cbPlateNum">1 / 4</div>
     </div>
-    <div style="display:flex;justify-content:center">
-      <canvas id="cbCanvas" width="270" height="270" style="display:block;border-radius:50%;border:2px solid var(--border)"></canvas>
-    </div>
-    <div style="text-align:center;font-size:1.05rem;font-weight:600;color:var(--text)">What number do you see?</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center" id="cbBtnRow"></div>
-    <button class="btn-s" onclick="cbAns('')" style="font-size:12px;padding:9px">I can't see a number</button>
-    <div class="skip" onclick="skipCBTest()">Skip color vision test</div>
+    <canvas id="cbCanvas" width="270" height="270" style="display:block;border-radius:50%;border:2px solid var(--border);flex-shrink:0"></canvas>
+    <div style="text-align:center;font-size:1rem;font-weight:600;color:var(--text);flex-shrink:0">What number do you see?</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;flex-shrink:0" id="cbBtnRow"></div>
+    <button class="fs-btn" onclick="cbAns('')" style="width:100%;max-width:300px;padding:13px;font-size:13px;flex-shrink:0;text-align:center">I cannot see a number</button>
+  </div>
+  <div class="fs-ctrl">
+    <button class="fs-btn" onclick="cbBack()" style="flex-shrink:0">← Back</button>
+    <button class="fs-btn" onclick="skipCBTest()" style="flex:1">Skip color test</button>
   </div>
 </div>
 
@@ -1127,7 +1116,8 @@ function buildProg(){
 
 function renderCh(){
   const row=SNELLEN[tRow];if(!row)return;
-  const html=`<div class="snellen-row">${row.l.map(l=>`<span class="cletter" style="font-size:${row.sz}px">${l}</span>`).join('')}</div><div style="font-size:10px;color:var(--text-dimmer);margin-top:5px;font-family:var(--mono)">${row.lb}</div>`;
+  const instr=tPhase==='both'?'Both eyes open':tPhase==='left'?'Cover your right eye':'Cover your left eye';
+  const html=`<div style="font-size:11px;color:var(--text-dimmer);margin-bottom:.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em">${instr}</div><div class="snellen-row">${row.l.map(l=>`<span class="cletter" style="font-size:${row.sz}px">${l}</span>`).join('')}</div><div style="font-size:10px;color:var(--text-dimmer);margin-top:5px;font-family:var(--mono)">${row.lb}</div>`;
   ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML=html;});
 }
 
@@ -1146,25 +1136,25 @@ function saveTS(ri){
     ['ph'+i,'fsPh'+i].forEach(id=>{const chip=$(id);if(chip&&p===tPhase)chip.className='pchip done';});
   });
   if(tPhase==='both'){
-    ['tir','fsTir'].forEach(id=>{const e=$(id);if(e)e.textContent='Great! Now cover your RIGHT eye.';});
+    ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:1.5rem 0;text-align:center;color:var(--text-dim)">Now cover your <strong style="color:var(--text)">right</strong> eye</div>';});
     speakTxt('Great. Now cover your right eye with your hand.',true);
     setTimeout(()=>runPhase('left'),1400);
   }else if(tPhase==='left'){
-    ['tir','fsTir'].forEach(id=>{const e=$(id);if(e)e.textContent='Now cover your LEFT eye.';});
+    ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:1.5rem 0;text-align:center;color:var(--text-dim)">Now cover your <strong style="color:var(--text)">left</strong> eye</div>';});
     speakTxt('Good. Now swap — cover your left eye.',true);
     setTimeout(()=>runPhase('right'),1400);
   }else{
-    ['tir','fsTir'].forEach(id=>{const e=$(id);if(e)e.textContent=t('done');});
-    speakTxt('Vision test complete. One more quick check.',true);
-    setTimeout(()=>{exitFS();initCBTest();},1400);
+    ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="text-align:center;padding:2rem 0"><div style="font-size:2.2rem;margin-bottom:.6rem">✓</div><div style="font-size:1.25rem;font-weight:700;color:var(--green);margin-bottom:.5rem">Test complete!</div><div style="font-size:13px;color:var(--text-dim)">Preparing color vision check…</div></div>';});
+    speakTxt("Well done, first test complete. Now let's check your color vision. Get ready.",true);
+    setTimeout(()=>{exitFS();initCBTest();},4500);
   }
 }
 
 function skipTest(){
-  tActive=false;stopDistCam();exitFS();
+  tActive=false;stopDistCam();exitFS();exitCBFS();
   scores.cb=null;showRes();
 }
-function skipTestFS(){tActive=false;exitFS();scores.cb=null;showRes();}
+function skipTestFS(){tActive=false;exitFS();exitCBFS();scores.cb=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1238,7 +1228,7 @@ function doShare(){
 function resetAll(){
   photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null};
   curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];
-  stopDistCam();exitFS();
+  stopDistCam();exitFS();exitCBFS();
 }
 
 // ── DISTANCE CAMERA & MEASUREMENT ────────────────────────────────
@@ -1352,6 +1342,20 @@ function exitFS(){
   const ov=$('fsOv');if(ov)ov.classList.remove('show');
   try{document.fullscreenElement&&document.exitFullscreen&&document.exitFullscreen();}catch(e){}
 }
+function enterCBFS(){
+  const ov=$('cbOv');if(ov)ov.classList.add('show');
+  try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}catch(e){}
+}
+function exitCBFS(){
+  const ov=$('cbOv');if(ov)ov.classList.remove('show');
+  try{document.fullscreenElement&&document.exitFullscreen&&document.exitFullscreen();}catch(e){}
+}
+function fsBack(){
+  if(tRow>0&&tActive){tRow--;renderCh();buildProg();}
+}
+function cbBack(){
+  if(cbIdx>0){cbScores.pop();showCBPlate(cbIdx-1);}
+}
 // ── END FULLSCREEN ────────────────────────────────────────────────
 
 // ── COLOR BLINDNESS TEST ──────────────────────────────────────────
@@ -1425,9 +1429,8 @@ function drawCBPlate(canvas,numStr,seed){
 function initCBTest(){
   const shuffled=[...CB_PLATES].sort(()=>Math.random()-0.5);
   cbSession=shuffled.slice(0,4);cbIdx=0;cbScores=[];
-  go('s6');
-  speakTxt('Now a quick color vision check. Look at each pattern and tap the number you see.',true);
-  setTimeout(()=>showCBPlate(0),1600);
+  enterCBFS();
+  showCBPlate(0);
 }
 
 function showCBPlate(idx){
@@ -1458,6 +1461,7 @@ function cbAns(userInput){
 }
 
 function finishCBTest(){
+  exitCBFS();
   const total=cbScores.length;
   const correct=cbScores.filter(s=>s.correct).length;
   scores.cb={total,correct,pct:total>0?Math.round(correct/total*100):0};
@@ -1465,7 +1469,7 @@ function finishCBTest(){
   setTimeout(showRes,1200);
 }
 
-function skipCBTest(){scores.cb=null;showRes();}
+function skipCBTest(){exitCBFS();scores.cb=null;showRes();}
 // ── END COLOR BLINDNESS TEST ──────────────────────────────────────
 
 // ── AI MODEL INTEGRATION ──────────────────────────────────────────
