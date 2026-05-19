@@ -191,10 +191,6 @@ canvas{display:none}
 .dist-bar-track{height:12px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;position:relative}
 .dist-bar-fill{height:100%;border-radius:6px;transition:width .35s,background .35s;min-width:4px}
 .dist-status{font-size:12px;font-family:var(--mono);text-align:center;color:var(--text-dim);min-height:1.2em}
-/* Mode tabs */
-.mode-tabs{display:flex;gap:6px;margin-bottom:.5rem}
-.mode-tab{flex:1;padding:10px 6px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface);text-align:center;font-size:12px;font-family:var(--sans);font-weight:600;color:var(--text-dim);cursor:pointer;transition:all .15s;line-height:1.4}
-.mode-tab.sel{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
 /* Global mute button */
 .g-mute{position:absolute;bottom:1.1rem;right:1.1rem;z-index:100;width:40px;height:40px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);color:var(--text-dim);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.5);transition:all .2s}
 .g-mute.muted{border-color:var(--danger);color:var(--danger);background:var(--danger-dim)}
@@ -374,10 +370,6 @@ async function loadEmbeddedModels(){
 
     <!-- Step 1: distance setup -->
     <div id="t-setup">
-      <div class="mode-tabs">
-        <div class="mode-tab sel" id="modeNear" onclick="setTestMode('near')">📏 Near<br><span style="font-size:10px;opacity:.7">40 cm</span></div>
-        <div class="mode-tab" id="modeInter" onclick="setTestMode('inter')">🔭 Intermediate<br><span style="font-size:10px;opacity:.7">80–100 cm</span></div>
-      </div>
       <div class="setup-card">
         <div style="font-size:2rem;margin-bottom:.35rem">📐</div>
         <div style="font-weight:700;font-size:1rem;margin-bottom:.3rem" id="ttitle">Position at 40 cm</div>
@@ -1553,33 +1545,27 @@ function resetAll(){
 
 // ── DISTANCE CAMERA & MEASUREMENT ────────────────────────────────
 const DIST_TGT={
-  near: {min:0.12,max:0.23,label:'40 cm'},
-  inter:{min:0.06,max:0.12,label:'80–100 cm'}
+  near:{min:0.12,max:0.23,label:'40 cm'}
 };
 
 function setTestMode(m){
   testMode=m;
-  $('modeNear').classList.toggle('sel',m==='near');
-  $('modeInter').classList.toggle('sel',m==='inter');
-  const tgt=DIST_TGT[m];
-  const tt=$('ttitle');if(tt)tt.textContent='Position at '+tgt.label;
-  const dt=$('dtiptxt');if(dt)dt.textContent=m==='near'
-    ?"Hold the screen at arm's length, about 40 cm from your face. Keep your head straight."
-    :'Hold the screen at 80–100 cm. Sit upright with the screen at eye level.';
+  const tt=$('ttitle');if(tt)tt.textContent='Position at 40 cm';
+  const dt=$('dtiptxt');if(dt)dt.textContent="Hold the screen at arm's length, about 40 cm from your face. Keep your head straight.";
   distConfirm=0;
   const btn=$('t-ready-btn');
   if(btn){btn.disabled=true;btn.style.opacity='.4';btn.textContent='Hold at correct distance to start';}
 }
 
 async function startDistCam(skipVoice=false){
+  distPerfectSpoken=false;
+  distGuardUntil=Date.now()+2000;
+  lastDistVoice=Date.now();
   try{
     if(distStream)distStream.getTracks().forEach(t=>t.stop());
     distStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:320},height:{ideal:240}}});
     const dv=$('distVid');dv.srcObject=distStream;
     await dv.play().catch(()=>{});
-    distPerfectSpoken=false;
-    distGuardUntil=Date.now()+2000;
-    lastDistVoice=Date.now();
     if(!skipVoice){
       speakTxt('Please hold your phone about 40 centimeters away.',true);
     }
@@ -1656,8 +1642,8 @@ function updateDistBar(eyeSpan){
   }
   if(tStarted&&tPaused&&inRange){
     tPaused=false;tActive=true;voiceTxt=null;
-    speakTxt('Perfect. Resuming test.',true);
-    setTimeout(()=>renderCh(),800);
+    if(Date.now()>=distGuardUntil){speakTxt('Perfect. Resuming test.',true);setTimeout(()=>renderCh(),800);}
+    else renderCh();
   }
   if(voiceTxt){speakTxt(voiceTxt,false);lastDistVoice=Date.now();}
   if(distConfirm>=8){
