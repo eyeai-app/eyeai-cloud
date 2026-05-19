@@ -1315,7 +1315,16 @@ function calNext(){
     showCalSlide(calIdx+1);
   }else{
     exitCalib();
-    speakThenDo('Please hold your phone about 40 centimeters from your face. The test will begin automatically when the distance is right.',0.65,500,()=>startDistCam(true));
+    startDistCam(true);   // silent — powers distance bar during letter test
+    tStarted=true;        // block updateDistBar from auto-triggering startVisionTest
+    $('t-setup').style.display='none';
+    setTimeout(()=>{
+      speakThenDo('Good. Now the test begins. Look at the letters and answer honestly.',0.65,1200,()=>{
+        tRow=0;tActive=true;
+        enterFS();
+        runPhase('both');
+      });
+    },1500);
   }
 }
 // ── END CALIBRATION ───────────────────────────────────────────────
@@ -1403,6 +1412,8 @@ function resetAll(){
   curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];
   tStarted=false;tPaused=false;clearSession();
   stopDistCam();exitCalib();exitFS();exitCBFS();
+  startQ();
+  setTimeout(()=>speak('vcam',true),300);
 }
 
 // ── DISTANCE CAMERA & MEASUREMENT ────────────────────────────────
