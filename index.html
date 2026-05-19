@@ -1578,7 +1578,7 @@ async function startDistCam(skipVoice=false){
     const dv=$('distVid');dv.srcObject=distStream;
     await dv.play().catch(()=>{});
     distPerfectSpoken=false;
-    distGuardUntil=Date.now()+1500;
+    distGuardUntil=Date.now()+2000;
     lastDistVoice=Date.now();
     if(!skipVoice){
       speakTxt('Please hold your phone about 40 centimeters away.',true);
@@ -1651,7 +1651,7 @@ function updateDistBar(eyeSpan){
   // Pause letter test when distance goes wrong; resume when it returns to green
   if(tStarted&&tActive&&!inRange){
     tPaused=true;tActive=false;voiceTxt=null;
-    speakTxt(tooClose?'Move a little further back.':'Move closer to the screen.',true);
+    if(Date.now()>=distGuardUntil)speakTxt(tooClose?'Move a little further back.':'Move closer to the screen.',true);
     ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="padding:2rem 1rem;text-align:center"><div style="font-size:1.4rem;margin-bottom:.5rem">⏸</div><div style="color:var(--warn);font-weight:600;margin-bottom:.4rem">Test paused</div><div style="font-size:12px;color:var(--text-dim)">'+(tooClose?'Move phone a little further back':'Move phone a little closer')+'</div></div>';});
   }
   if(tStarted&&tPaused&&inRange){
