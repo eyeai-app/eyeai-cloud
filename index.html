@@ -415,6 +415,14 @@ async function loadEmbeddedModels(){
     <div class="res-hero"><div class="rbadge bok" id="rbadge">ANALYSED</div><div style="font-size:1.3rem;margin-bottom:.3rem" id="rtitle">Results ready</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="rsub">Based on your eye photos and vision test</div></div>
     <div class="ecard" id="bcard" style="display:none;margin-bottom:0"><div class="eclbl">Binocular (both eyes)</div><div class="escore" id="bres">—</div><div class="esub" id="bresb">—</div></div>
     <div class="ecard" id="cbCard" style="display:none;margin-bottom:0"><div class="eclbl">Color Vision</div><div class="escore" id="cbRes">—</div><div class="esub" id="cbResB">—</div></div>
+    <div class="ecard" id="csCard" style="display:none;margin-bottom:0">
+      <div class="eclbl">Contrast Sensitivity</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">
+        <div style="text-align:center"><div style="font-size:9px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Both</div><div class="escore" id="csBothRes">—</div><div class="esub" id="csBothResB">—</div></div>
+        <div style="text-align:center"><div style="font-size:9px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Left</div><div class="escore" id="csLeftRes">—</div><div class="esub" id="csLeftResB">—</div></div>
+        <div style="text-align:center"><div style="font-size:9px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Right</div><div class="escore" id="csRightRes">—</div><div class="esub" id="csRightResB">—</div></div>
+      </div>
+    </div>
     <div class="ecmp">
       <div class="ecard"><div class="eclbl" id="lell">Left eye</div><div class="escore" id="lres">—</div><div class="esub" id="lresb">Not tested</div></div>
       <div class="ecard"><div class="eclbl" id="rell">Right eye</div><div class="escore" id="rres">—</div><div class="esub" id="rresb">Not tested</div></div>
@@ -484,6 +492,28 @@ async function loadEmbeddedModels(){
   </div>
 </div>
 
+<!-- CONTRAST SENSITIVITY TEST OVERLAY -->
+<div class="fs-ov" id="csOv">
+  <div class="fs-body" style="align-items:center;justify-content:center;gap:1.4rem;padding:2rem 1.5rem">
+    <div style="text-align:center">
+      <div style="font-size:.9rem;font-weight:600;color:var(--text-dim)" id="csPhLbl">Contrast Sensitivity</div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);margin-top:2px" id="csLvlLbl">Level 1 / 6</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-dim);text-align:center;line-height:1.6;max-width:270px">Can you see the letter clearly?</div>
+    <div style="background:#fff;border-radius:14px;width:230px;height:190px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,.5)">
+      <div id="csLetter" style="font-family:'Courier New',monospace;font-size:130px;font-weight:700;line-height:1;user-select:none;color:#000">E</div>
+    </div>
+    <div style="display:flex;gap:12px;width:100%;max-width:320px">
+      <button onclick="csAns(true)" style="flex:1;padding:16px 8px;border-radius:var(--r-sm);border:1.5px solid var(--green);background:var(--green-dim);color:var(--green);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer">✓ Yes, I can see it</button>
+      <button onclick="csAns(false)" style="flex:1;padding:16px 8px;border-radius:var(--r-sm);border:1.5px solid var(--danger);background:var(--danger-dim);color:var(--danger);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer">✗ No, I cannot</button>
+    </div>
+  </div>
+  <div class="fs-ctrl">
+    <button class="fs-btn" id="csMuteBtn" onclick="tVoiceGlobal()" style="width:40px;height:40px;padding:0;border-radius:50%;flex-shrink:0">🔊</button>
+    <button class="fs-btn" onclick="skipCSTest()" style="flex:1;text-align:center">Skip contrast test</button>
+  </div>
+</div>
+
 <canvas id="cv"></canvas>
 <video id="distVid" autoplay playsinline muted style="display:none;position:absolute;width:1px;height:1px;opacity:0"></video>
 <input type="file" id="upinp" accept="image/*" style="display:none" onchange="onUpload(event)">
@@ -497,11 +527,12 @@ const TR={
 };
 
 let lang='en',voiceOn=true,who='self',curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
-let photos={left:null,right:null},scores={both:null,left:null,right:null,cb:null},tPhase='both',tRow=0,tActive=false,tStarted=false,tPaused=false,hist=[];
+let photos={left:null,right:null},scores={both:null,left:null,right:null,cb:null,cs:null},tPhase='both',tRow=0,tActive=false,tStarted=false,tPaused=false,hist=[];
 let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
 let distStream=null,distTimer=null,distConfirm=0,testMode='near',lastDistVoice=0;
 let cbSession=[],cbIdx=0,cbScores=[];
+let csPhase='both',csLevelIdx=0;
 
 // Extended Snellen chart — proportional to 40 cm viewing distance.
 // Sizes scale linearly: 6/60 (worst) is 10× the physical height of 6/6.
@@ -655,7 +686,7 @@ function tVoiceGlobal(){
   voiceOn=!voiceOn;
   if(!voiceOn)synth.cancel();
   const vt=$('vtog');if(vt){vt.textContent=voiceOn?'ON':'OFF';vt.classList.toggle('on',voiceOn);}
-  ['gMute','fsMuteBtn'].forEach(id=>{const e=$(id);if(e){e.textContent=voiceOn?'🔊':'🔇';e.classList.toggle('muted',!voiceOn);}});
+  ['gMute','fsMuteBtn','csMuteBtn'].forEach(id=>{const e=$(id);if(e){e.textContent=voiceOn?'🔊':'🔇';e.classList.toggle('muted',!voiceOn);}});
 }
 
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');}
@@ -1108,7 +1139,7 @@ function doRetake(){
   // Full reset so capture + full test flow starts completely fresh
   autoCapReady=0;autoCapturing=false;
   photos[curEye]=null;
-  scores={both:null,left:null,right:null,cb:null};
+  scores={both:null,left:null,right:null,cb:null,cs:null};
   tPhase='both';tRow=0;tActive=false;tStarted=false;tPaused=false;
   clearSession();
   stopDistCam();exitCalib();exitFS();exitCBFS();
@@ -1125,7 +1156,7 @@ function usePhoto(){
 }
 
 function initTest(){
-  scores={both:null,left:null,right:null,cb:null};tPhase='both';tRow=0;tActive=false;
+  scores={both:null,left:null,right:null,cb:null,cs:null};tPhase='both';tRow=0;tActive=false;
   tStarted=false;tPaused=false;clearSession();
   $('t-setup').style.display='';$('t-run').style.display='none';
   distConfirm=0;setTestMode('near');
@@ -1138,7 +1169,7 @@ function startVisionTest(){
   if(tStarted)return;
   tStarted=true;
   $('t-setup').style.display='none';$('t-run').style.display='none';
-  scores={both:null,left:null,right:null,cb:null};tRow=0;tActive=true;
+  scores={both:null,left:null,right:null,cb:null,cs:null};tRow=0;tActive=true;
   enterFS();
   speakThenDo('Both eyes open. Read the letters on screen, then tap Correct or Cannot read.',null,600,()=>runPhase('both'));
 }
@@ -1202,10 +1233,10 @@ function saveTS(ri){
 }
 
 function skipTest(){
-  tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();
-  clearSession();scores.cb=null;showRes();
+  tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCSFS();
+  clearSession();scores.cb=null;scores.cs=null;showRes();
 }
-function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();clearSession();scores.cb=null;showRes();}
+function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCSFS();clearSession();scores.cb=null;scores.cs=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1242,12 +1273,26 @@ function showRes(){
       $('cbResB').textContent=pct>=75?'Normal color vision':pct>=50?'Mild color difficulty':'Color vision concern';
     }else cbCard.style.display='none';
   }
+  // Contrast sensitivity result
+  const csCard=$('csCard');
+  if(csCard){
+    if(scores.cs){
+      csCard.style.display='';
+      [['both','csBothRes','csBothResB'],['left','csLeftRes','csLeftResB'],['right','csRightRes','csRightResB']].forEach(([ph,rid,bid])=>{
+        const lbl=csSensLabel(scores.cs[ph]);
+        const re=$(rid),be=$(bid);
+        if(re){re.textContent=scores.cs[ph]!==null?scores.cs[ph]+'%':'—';re.className='escore '+lbl.c;}
+        if(be)be.textContent=lbl.b;
+      });
+    }else csCard.style.display='none';
+  }
   const hasImb=scores.left!==null&&scores.right!==null&&Math.abs(scores.left-scores.right)>=2;
   const hasPoor=(scores.left!==null&&scores.left<4)||(scores.right!==null&&scores.right<4)||(scores.both!==null&&scores.both<4);
   const hasCBIssue=scores.cb&&scores.cb.pct<75;
-  $('actxt').textContent=(hasImb||hasPoor||hasCBIssue)?t('awk'):t('aok');
+  const hasCsIssue=scores.cs&&(['both','left','right'].some(ph=>scores.cs[ph]!==null&&scores.cs[ph]>5));
+  $('actxt').textContent=(hasImb||hasPoor||hasCBIssue||hasCsIssue)?t('awk'):t('aok');
   const bd=$('rbadge'),rt=$('rtitle');
-  if(hasImb||hasPoor||hasCBIssue){bd.className='rbadge bwarn';bd.textContent='FOLLOW UP';rt.textContent=lang==='he'?'מומלץ לפנות לרופא':'Follow-up recommended';}
+  if(hasImb||hasPoor||hasCBIssue||hasCsIssue){bd.className='rbadge bwarn';bd.textContent='FOLLOW UP';rt.textContent=lang==='he'?'מומלץ לפנות לרופא':'Follow-up recommended';}
   else{bd.className='rbadge bok';bd.textContent='ALL CLEAR';rt.textContent=lang==='he'?'תוצאות תקינות':'Looking good';}
   buildHist(scores.left,scores.right);
   speak('vres',true);
@@ -1271,7 +1316,8 @@ function doShare(){
   const df=scores.left!==null&&scores.right!==null?Math.abs(scores.left-scores.right):0;
   const note=df>=2?'Interocular difference detected — follow up recommended.':'Eyes appear balanced.';
   const cbLine=scores.cb?`\nColor vision: ${scores.cb.pct}% (${scores.cb.correct}/${scores.cb.total} plates correct)`:'';
-  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}${cbLine}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
+  const csLine=scores.cs?`\nContrast sensitivity: Both ${scores.cs.both!==null?scores.cs.both+'%':'—'}, Left ${scores.cs.left!==null?scores.cs.left+'%':'—'}, Right ${scores.cs.right!==null?scores.cs.right+'%':'—'}`:'';
+  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}${cbLine}${csLine}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
   if(navigator.share)navigator.share({title:'EyeAI Result',text:txt});
   else navigator.clipboard?.writeText(txt).then(()=>alert('Copied to clipboard'));
 }
@@ -1408,10 +1454,10 @@ function onTapBegin(){
 // ── END SESSION MEMORY ────────────────────────────────────────────
 
 function resetAll(){
-  photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null};
+  photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null,cs:null};
   curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];
   tStarted=false;tPaused=false;clearSession();
-  stopDistCam();exitCalib();exitFS();exitCBFS();
+  stopDistCam();exitCalib();exitFS();exitCBFS();exitCSFS();
   startQ();
   setTimeout(()=>speak('vcam',true),300);
 }
@@ -1664,12 +1710,74 @@ function finishCBTest(){
   const total=cbScores.length;
   const correct=cbScores.filter(s=>s.correct).length;
   scores.cb={total,correct,pct:total>0?Math.round(correct/total*100):0};
-  speakTxt(correct===total?'Excellent color vision.':'Color check complete. Showing your results now.',true);
-  setTimeout(showRes,1200);
+  const cbVoice=correct===total?'Excellent color vision. Now let\'s check your contrast sensitivity.':'Color check done. Now let\'s check your contrast sensitivity.';
+  speakThenDo(cbVoice,0.65,1000,()=>initCSTest());
 }
 
-function skipCBTest(){exitCBFS();scores.cb=null;showRes();}
+function skipCBTest(){exitCBFS();scores.cb=null;initCSTest();}
 // ── END COLOR BLINDNESS TEST ──────────────────────────────────────
+
+// ── CONTRAST SENSITIVITY TEST ─────────────────────────────────────
+const CS_LEVELS=[100,50,25,10,5,2];
+
+function enterCSFS(){const ov=$('csOv');if(ov)ov.classList.add('show');}
+function exitCSFS(){const ov=$('csOv');if(ov)ov.classList.remove('show');}
+
+function initCSTest(){
+  csPhase='both';csLevelIdx=0;
+  scores.cs={both:null,left:null,right:null};
+  enterCSFS();
+  speakThenDo("Now let's check your contrast sensitivity. Look at the letter on the white card and tell me if you can see it clearly.",0.65,800,()=>showCSLevel());
+}
+
+function showCSLevel(){
+  const pct=CS_LEVELS[csLevelIdx];
+  const g=255-Math.round(2.55*pct);
+  const ltr=$('csLetter');if(ltr)ltr.style.color='rgb('+g+','+g+','+g+')';
+  const phLabel=csPhase==='both'?'Both eyes open':csPhase==='left'?'Cover your right eye':'Cover your left eye';
+  const ph=$('csPhLbl');if(ph)ph.textContent=phLabel;
+  const lvl=$('csLvlLbl');if(lvl)lvl.textContent='Level '+(csLevelIdx+1)+' / '+CS_LEVELS.length;
+  speakTxt('Can you see the letter clearly?',true,0.65);
+}
+
+function csAns(canSee){
+  if(!canSee){
+    scores.cs[csPhase]=CS_LEVELS[csLevelIdx];
+    setTimeout(()=>csNextPhase(),600);
+  }else{
+    csLevelIdx++;
+    if(csLevelIdx>=CS_LEVELS.length){
+      scores.cs[csPhase]=CS_LEVELS[CS_LEVELS.length-1];
+      setTimeout(()=>csNextPhase(),300);
+    }else{
+      setTimeout(()=>showCSLevel(),400);
+    }
+  }
+}
+
+function csNextPhase(){
+  if(csPhase==='both'){
+    csPhase='left';csLevelIdx=0;
+    speakThenDo('Good. Now cover your right eye.',0.65,1000,()=>showCSLevel());
+  }else if(csPhase==='left'){
+    csPhase='right';csLevelIdx=0;
+    speakThenDo('Good. Now cover your left eye.',0.65,1000,()=>showCSLevel());
+  }else{
+    exitCSFS();
+    speakThenDo('Contrast test complete.',0.65,1200,()=>showRes());
+  }
+}
+
+function csSensLabel(pct){
+  if(pct===null)return{c:'',b:'Not tested'};
+  if(pct<=5)return{c:'ok',b:'Normal'};
+  if(pct<=10)return{c:'warn',b:'Mild reduction'};
+  if(pct<=25)return{c:'warn',b:'Moderate reduction'};
+  return{c:'alert',b:'Significant reduction'};
+}
+
+function skipCSTest(){exitCSFS();scores.cs=null;showRes();}
+// ── END CONTRAST SENSITIVITY TEST ─────────────────────────────────
 
 // ── AI MODEL INTEGRATION ──────────────────────────────────────────
 let consumerModel = null;
