@@ -1315,11 +1315,11 @@ function calNext(){
     showCalSlide(calIdx+1);
   }else{
     exitCalib();
-    startDistCam(true);   // silent — powers distance bar during letter test
     tStarted=true;        // block updateDistBar from auto-triggering startVisionTest
     $('t-setup').style.display='none';
     setTimeout(()=>{
       speakThenDo('Good. Now the test begins. Look at the letters and answer honestly.',0.65,1200,()=>{
+        startDistCam(true);   // start AFTER voice finishes — no overlap with transition voice
         tRow=0;tActive=true;
         enterFS();
         runPhase('both');
