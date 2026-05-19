@@ -423,6 +423,7 @@ async function loadEmbeddedModels(){
   <div class="content">
     <div class="res-hero"><div class="rbadge bok" id="rbadge">ANALYSED</div><div style="font-size:1.75rem;font-weight:800;margin-bottom:.3rem" id="rtitle">Results ready</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="rsub">Based on your eye photos and vision test</div></div>
     <div class="ecard" id="bcard" style="display:none;margin-bottom:0"><div class="eclbl eclbl-row"><span>Binocular (both eyes)</span><button class="info-btn" onclick="showInfoPopup('Binocular vision',acuityInfoText(scores.both))">i</button></div><div class="escore" id="bres">—</div><div class="esub" id="bresb">—</div></div>
+    <div class="ecard" id="ctCard" style="margin-bottom:0"><div class="eclbl eclbl-row"><span>Cover Test</span><button class="info-btn" onclick="showInfoPopup('Cover test',ctInfoText())">i</button></div><div class="escore" id="ctRes">—</div><div class="esub" id="ctResB">Not completed</div></div>
     <div class="ecard" id="cbCard" style="display:none;margin-bottom:0"><div class="eclbl eclbl-row"><span>Color Vision</span><button class="info-btn" onclick="showInfoPopup('Color vision',cbInfoText(scores.cb?scores.cb.pct:null))">i</button></div><div class="escore" id="cbRes">—</div><div class="esub" id="cbResB">—</div></div>
     <div class="ecard" id="csCard" style="display:none;margin-bottom:0">
       <div class="eclbl eclbl-row"><span>Contrast Sensitivity</span><button class="info-btn" onclick="showInfoPopup('Contrast sensitivity',csInfoText(scores.cs&&scores.cs.both!==null?scores.cs.both:scores.cs&&scores.cs.left!==null?scores.cs.left:null))">i</button></div>
@@ -501,6 +502,33 @@ async function loadEmbeddedModels(){
   </div>
 </div>
 
+<!-- COVER TEST OVERLAY -->
+<div class="fs-ov" id="ctOv">
+  <div class="fs-body" style="align-items:center;justify-content:center;gap:1.8rem;padding:2rem 1.5rem">
+    <div style="text-align:center">
+      <div style="font-size:.9rem;font-weight:600;color:var(--text-dim)">Cover Test</div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);margin-top:2px">Eye alignment check</div>
+    </div>
+    <div style="width:180px;height:180px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <div style="width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px rgba(88,166,255,.7)"></div>
+    </div>
+    <div id="ctInstrArea" style="text-align:center;max-width:280px">
+      <div style="font-size:15px;font-weight:600;color:var(--text);line-height:1.6" id="ctInstr">Keep both eyes open and focus on the dot</div>
+    </div>
+    <div id="ctQuestionArea" style="display:none;width:100%;max-width:320px">
+      <div style="font-size:15px;font-weight:600;color:var(--text);text-align:center;line-height:1.6;margin-bottom:1.2rem" id="ctQuestionTxt"></div>
+      <div style="display:flex;gap:12px">
+        <button onclick="ctAns(ctCurrentQ,false)" style="flex:1;padding:16px 8px;border-radius:var(--r-sm);border:1.5px solid var(--green);background:var(--green-dim);color:var(--green);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer">✓ No</button>
+        <button onclick="ctAns(ctCurrentQ,true)" style="flex:1;padding:16px 8px;border-radius:var(--r-sm);border:1.5px solid var(--warn);background:var(--warn-dim);color:var(--warn);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer">⚠ Yes</button>
+      </div>
+    </div>
+  </div>
+  <div class="fs-ctrl">
+    <button class="fs-btn" id="ctMuteBtn" onclick="tVoiceGlobal()" style="width:40px;height:40px;padding:0;border-radius:50%;flex-shrink:0">🔊</button>
+    <button class="fs-btn" onclick="skipCoverTest()" style="flex:1;text-align:center">Skip cover test</button>
+  </div>
+</div>
+
 <!-- CONTRAST SENSITIVITY TEST OVERLAY -->
 <div class="fs-ov" id="csOv">
   <div class="fs-body" style="align-items:center;justify-content:center;gap:1.4rem;padding:2rem 1.5rem">
@@ -565,12 +593,13 @@ const TR={
 };
 
 let lang='en',voiceOn=true,who='self',curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
-let photos={left:null,right:null},scores={both:null,left:null,right:null,cb:null,cs:null},tPhase='both',tRow=0,tActive=false,tStarted=false,tPaused=false,hist=[];
+let photos={left:null,right:null},scores={both:null,left:null,right:null,ct:null,cb:null,cs:null},tPhase='both',tRow=0,tActive=false,tStarted=false,tPaused=false,hist=[];
 let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
 let distStream=null,distTimer=null,distConfirm=0,testMode='near',lastDistVoice=0;
 let cbSession=[],cbIdx=0,cbScores=[];
 let csPhase='both',csLevelIdx=0,csProcessing=false,csLastLetter='',csInstrShown=false,csVoiceAsked=false;
+let ctCurrentQ=1,ctAnswers={right:null,left:null};
 
 // Extended Snellen chart — proportional to 40 cm viewing distance.
 // Sizes scale linearly: 6/60 (worst) is 10× the physical height of 6/6.
@@ -724,7 +753,7 @@ function tVoiceGlobal(){
   voiceOn=!voiceOn;
   if(!voiceOn)synth.cancel();
   const vt=$('vtog');if(vt){vt.textContent=voiceOn?'ON':'OFF';vt.classList.toggle('on',voiceOn);}
-  ['gMute','fsMuteBtn','csMuteBtn','csInstrMuteBtn'].forEach(id=>{const e=$(id);if(e){e.textContent=voiceOn?'🔊':'🔇';e.classList.toggle('muted',!voiceOn);}});
+  ['gMute','fsMuteBtn','csMuteBtn','csInstrMuteBtn','ctMuteBtn'].forEach(id=>{const e=$(id);if(e){e.textContent=voiceOn?'🔊':'🔇';e.classList.toggle('muted',!voiceOn);}});
 }
 
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');}
@@ -1177,7 +1206,7 @@ function doRetake(){
   // Full reset so capture + full test flow starts completely fresh
   autoCapReady=0;autoCapturing=false;
   photos[curEye]=null;
-  scores={both:null,left:null,right:null,cb:null,cs:null};
+  scores={both:null,left:null,right:null,ct:null,cb:null,cs:null};
   tPhase='both';tRow=0;tActive=false;tStarted=false;tPaused=false;
   clearSession();
   stopDistCam();exitCalib();exitFS();exitCBFS();
@@ -1194,7 +1223,7 @@ function usePhoto(){
 }
 
 function initTest(){
-  scores={both:null,left:null,right:null,cb:null,cs:null};tPhase='both';tRow=0;tActive=false;
+  scores={both:null,left:null,right:null,ct:null,cb:null,cs:null};tPhase='both';tRow=0;tActive=false;
   tStarted=false;tPaused=false;clearSession();
   $('t-setup').style.display='';$('t-run').style.display='none';
   distConfirm=0;setTestMode('near');
@@ -1207,7 +1236,7 @@ function startVisionTest(){
   if(tStarted)return;
   tStarted=true;
   $('t-setup').style.display='none';$('t-run').style.display='none';
-  scores={both:null,left:null,right:null,cb:null,cs:null};tRow=0;tActive=true;
+  scores={both:null,left:null,right:null,ct:null,cb:null,cs:null};tRow=0;tActive=true;
   enterFS();
   speakThenDo('Both eyes open. Read the letters on screen, then tap Correct or Cannot read.',null,600,()=>runPhase('both'));
 }
@@ -1265,16 +1294,16 @@ function saveTS(ri){
   }else{
     clearSession();
     stopDistCam();
-    ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="text-align:center;padding:2rem 0"><div style="font-size:2.2rem;margin-bottom:.6rem">✓</div><div style="font-size:1.25rem;font-weight:700;color:var(--green);margin-bottom:.5rem">Test complete!</div><div style="font-size:13px;color:var(--text-dim)">Preparing color vision check…</div></div>';});
-    speakThenDo("Well done, first test complete. Now let's check your color vision. Get ready.",null,2000,()=>{exitFS();initCBTest();});
+    ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML='<div style="text-align:center;padding:2rem 0"><div style="font-size:2.2rem;margin-bottom:.6rem">✓</div><div style="font-size:1.25rem;font-weight:700;color:var(--green);margin-bottom:.5rem">Test complete!</div><div style="font-size:13px;color:var(--text-dim)">Preparing alignment check…</div></div>';});
+    speakThenDo("Vision test complete. Now a quick alignment check.",null,2000,()=>{exitFS();initCoverTest();});
   }
 }
 
 function skipTest(){
-  tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCSFS();
-  clearSession();scores.cb=null;scores.cs=null;showRes();
+  tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();
+  clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();
 }
-function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCSFS();clearSession();scores.cb=null;scores.cs=null;showRes();}
+function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1300,6 +1329,19 @@ function showRes(){
     if(df>=2){ib.className='ibox ibox-warn';ib.textContent=t('imb');}
     else{ib.className='ibox ibox-ok';ib.textContent=t('bal');}
   }else{ib.className='ibox ibox-ok';ib.textContent=t('aok');}
+  // Cover test result
+  const ctCard=$('ctCard');
+  if(ctCard){
+    if(scores.ct!==null){
+      const anyJump=scores.ct.rightJump||scores.ct.leftJump;
+      $('ctRes').textContent=anyJump?'Follow up':'No signs';
+      $('ctRes').className='escore '+(anyJump?'warn':'ok');
+      $('ctResB').textContent=anyJump?'Possible eye misalignment':'No misalignment signs detected';
+    }else{
+      $('ctRes').textContent='—';$('ctRes').className='escore';
+      $('ctResB').textContent='Not completed';
+    }
+  }
   // Color blindness result
   const cbCard=$('cbCard');
   if(cbCard){
@@ -1326,11 +1368,12 @@ function showRes(){
   }
   const hasImb=scores.left!==null&&scores.right!==null&&Math.abs(scores.left-scores.right)>=2;
   const hasPoor=(scores.left!==null&&scores.left<4)||(scores.right!==null&&scores.right<4)||(scores.both!==null&&scores.both<4);
+  const hasCTIssue=scores.ct&&(scores.ct.rightJump||scores.ct.leftJump);
   const hasCBIssue=scores.cb&&scores.cb.pct<75;
   const hasCsIssue=scores.cs&&(['both','left','right'].some(ph=>scores.cs[ph]!==null&&scores.cs[ph]>5));
-  $('actxt').textContent=(hasImb||hasPoor||hasCBIssue||hasCsIssue)?t('awk'):t('aok');
+  $('actxt').textContent=(hasImb||hasPoor||hasCTIssue||hasCBIssue||hasCsIssue)?t('awk'):t('aok');
   const bd=$('rbadge'),rt=$('rtitle');
-  if(hasImb||hasPoor||hasCBIssue||hasCsIssue){bd.className='rbadge bwarn';bd.textContent='FOLLOW UP';rt.textContent=lang==='he'?'מומלץ לפנות לרופא':'Follow-up recommended';}
+  if(hasImb||hasPoor||hasCTIssue||hasCBIssue||hasCsIssue){bd.className='rbadge bwarn';bd.textContent='FOLLOW UP';rt.textContent=lang==='he'?'מומלץ לפנות לרופא':'Follow-up recommended';}
   else{bd.className='rbadge bok';bd.textContent='ALL CLEAR';rt.textContent=lang==='he'?'תוצאות תקינות':'Looking good';}
   buildHist(scores.left,scores.right);
   speak('vres',true);
@@ -1353,9 +1396,10 @@ function doShare(){
   const rs=scores.right!==null?SNELLEN[scores.right].lb:'Not tested';
   const df=scores.left!==null&&scores.right!==null?Math.abs(scores.left-scores.right):0;
   const note=df>=2?'Interocular difference detected — follow up recommended.':'Eyes appear balanced.';
+  const ctLine=scores.ct?`\nCover test: ${(scores.ct.rightJump||scores.ct.leftJump)?'Follow up recommended':'No misalignment signs detected'}`:'';
   const cbLine=scores.cb?`\nColor vision: ${scores.cb.pct}% (${scores.cb.correct}/${scores.cb.total} plates correct)`:'';
   const csLine=scores.cs?`\nContrast sensitivity: Both ${scores.cs.both!==null?scores.cs.both+'%':'—'}, Left ${scores.cs.left!==null?scores.cs.left+'%':'—'}, Right ${scores.cs.right!==null?scores.cs.right+'%':'—'}`:'';
-  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}${cbLine}${csLine}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
+  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}${ctLine}${cbLine}${csLine}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
   if(navigator.share)navigator.share({title:'EyeAI Result',text:txt});
   else navigator.clipboard?.writeText(txt).then(()=>alert('Copied to clipboard'));
 }
@@ -1452,6 +1496,7 @@ function doRecover(){
   if(s.both!==null&&s.left===null)nextPh='left';
   else if(s.both!==null&&s.left!==null&&s.right===null)nextPh='right';
   else if(s.right!==null){
+    if(s.ct===null){clearSession();go('s5');initCoverTest();return;}
     if(s.cb===null){clearSession();go('s5');initCBTest();return;}
     if(s.cs===null){clearSession();go('s5');initCSTest();return;}
     clearSession();go('s5');showRes();return;
@@ -1497,10 +1542,10 @@ function onTapBegin(){
 // ── END SESSION MEMORY ────────────────────────────────────────────
 
 function resetAll(){
-  photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null,cs:null};
+  photos={left:null,right:null};scores={both:null,left:null,right:null,ct:null,cb:null,cs:null};
   curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];csPhase='both';csLevelIdx=0;csLastLetter='';csInstrShown=false;csVoiceAsked=false;
   tStarted=false;tPaused=false;clearSession();
-  stopDistCam();exitCalib();exitFS();exitCBFS();exitCSFS();
+  stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();
   startQ();
   setTimeout(()=>speak('vcam',true),300);
 }
@@ -1760,6 +1805,63 @@ function finishCBTest(){
 function skipCBTest(){exitCBFS();scores.cb=null;initCSTest();}
 // ── END COLOR BLINDNESS TEST ──────────────────────────────────────
 
+// ── COVER TEST ────────────────────────────────────────────────────
+function enterCTFS(){const ov=$('ctOv');if(ov)ov.classList.add('show');}
+function exitCTFS(){const ov=$('ctOv');if(ov)ov.classList.remove('show');}
+
+function initCoverTest(){
+  ctAnswers={right:null,left:null};
+  enterCTFS();
+  showCTPhase('fixate');
+  speakThenDo("Look at the dot in the center of the screen. Keep both eyes open and focus on it.",0.65,3000,()=>{
+    showCTPhase('coverRight');
+    speakThenDo("Now cover your right eye with your hand. Keep looking at the dot.",0.65,2000,()=>{
+      showCTPhase('uncoverRight');
+      speakThenDo("Good. Now uncover your right eye.",0.65,1000,()=>{
+        showCTPhase('coverLeft');
+        speakThenDo("Now cover your left eye with your hand. Keep looking at the dot.",0.65,2000,()=>{
+          showCTPhase('uncoverLeft');
+          speakThenDo("Good. Now uncover your left eye.",0.65,1000,()=>{
+            showCTQuestion(1);
+          });
+        });
+      });
+    });
+  });
+}
+
+function showCTPhase(phase){
+  const ia=$('ctInstrArea'),qa=$('ctQuestionArea');
+  if(ia)ia.style.display='';if(qa)qa.style.display='none';
+  const map={fixate:'Both eyes open — focus on the dot',coverRight:'Cover your RIGHT eye — keep looking at the dot',uncoverRight:'Uncover your right eye',coverLeft:'Cover your LEFT eye — keep looking at the dot',uncoverLeft:'Uncover your left eye'};
+  const el=$('ctInstr');if(el)el.textContent=map[phase]||'';
+}
+
+function showCTQuestion(qNum){
+  ctCurrentQ=qNum;
+  const ia=$('ctInstrArea'),qa=$('ctQuestionArea');
+  if(ia)ia.style.display='none';if(qa)qa.style.display='';
+  const q=qNum===1?'When you covered your right eye, did the dot appear to jump or move?':'When you covered your left eye, did the dot appear to jump or move?';
+  const qt=$('ctQuestionTxt');if(qt)qt.textContent=q;
+  speakTxt(q,true,0.65);
+}
+
+function ctAns(qNum,jumped){
+  if(qNum===1){ctAnswers.right=jumped;setTimeout(()=>showCTQuestion(2),400);}
+  else{ctAnswers.left=jumped;setTimeout(()=>finishCoverTest(),400);}
+}
+
+function finishCoverTest(){
+  exitCTFS();
+  scores.ct={rightJump:ctAnswers.right,leftJump:ctAnswers.left};
+  saveSession();
+  const anyJump=ctAnswers.right||ctAnswers.left;
+  speakThenDo(anyJump?"Thank you. Now let's check your color vision.":"Good. Now let's check your color vision.",0.65,800,()=>initCBTest());
+}
+
+function skipCoverTest(){exitCTFS();scores.ct=null;initCBTest();}
+// ── END COVER TEST ────────────────────────────────────────────────
+
 // ── CONTRAST SENSITIVITY TEST ─────────────────────────────────────
 const CS_LEVELS=[100,50,25,10,5,2];
 const SLOAN_LETTERS=['C','D','E','F','H','N','O','R','S','V','Z'];
@@ -1833,6 +1935,9 @@ function csSensLabel(pct){
   if(pct<=10)return{c:'warn',b:'Mild reduction'};
   if(pct<=25)return{c:'warn',b:'Moderate reduction'};
   return{c:'alert',b:'Significant reduction'};
+}
+function ctInfoText(){
+  return "This test checks if your eyes are properly aligned. If the dot appeared to jump when covering one eye, this may indicate a slight misalignment. This is not a diagnosis — please mention it to your optometrist.";
 }
 function acuityInfoText(idx){
   if(idx===null)return'This eye has not been tested yet.';
