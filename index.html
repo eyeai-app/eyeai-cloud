@@ -532,7 +532,7 @@ let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
 let distStream=null,distTimer=null,distConfirm=0,testMode='near',lastDistVoice=0;
 let cbSession=[],cbIdx=0,cbScores=[];
-let csPhase='both',csLevelIdx=0;
+let csPhase='both',csLevelIdx=0,csProcessing=false;
 
 // Extended Snellen chart — proportional to 40 cm viewing distance.
 // Sizes scale linearly: 6/60 (worst) is 10× the physical height of 6/6.
@@ -1413,7 +1413,11 @@ function doRecover(){
   let nextPh='both';
   if(s.both!==null&&s.left===null)nextPh='left';
   else if(s.both!==null&&s.left!==null&&s.right===null)nextPh='right';
-  else if(s.right!==null){clearSession();go('s5');showRes();return;}
+  else if(s.right!==null){
+    if(s.cb===null){clearSession();go('s5');initCBTest();return;}
+    if(s.cs===null){clearSession();go('s5');initCSTest();return;}
+    clearSession();go('s5');showRes();return;
+  }
   go('s4');
   tStarted=true;tRow=0;tPaused=false;distConfirm=0;
   setTestMode('near');startDistCam(true);
@@ -1422,8 +1426,9 @@ function doRecover(){
 }
 function doStartOver(){
   $('recoverScreen').style.display='none';
-  clearSession();window._savedSession=null;
-  speakTxt("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",true,0.65);
+  window._savedSession=null;
+  resetAll();
+  go('s1');
 }
 
 function onTapBegin(){
@@ -1455,7 +1460,7 @@ function onTapBegin(){
 
 function resetAll(){
   photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null,cs:null};
-  curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];
+  curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];csPhase='both';csLevelIdx=0;
   tStarted=false;tPaused=false;clearSession();
   stopDistCam();exitCalib();exitFS();exitCBFS();exitCSFS();
   startQ();
@@ -1738,9 +1743,12 @@ function showCSLevel(){
   const ph=$('csPhLbl');if(ph)ph.textContent=phLabel;
   const lvl=$('csLvlLbl');if(lvl)lvl.textContent='Level '+(csLevelIdx+1)+' / '+CS_LEVELS.length;
   speakTxt('Can you see the letter clearly?',true,0.65);
+  csProcessing=false;
 }
 
 function csAns(canSee){
+  if(csProcessing)return;
+  csProcessing=true;
   if(!canSee){
     scores.cs[csPhase]=CS_LEVELS[csLevelIdx];
     setTimeout(()=>csNextPhase(),600);
@@ -1894,10 +1902,14 @@ function updateAIRecommendation() {
   const rr = aiResults.right;
   const anyAbnormal = (lr && lr.label === 'abnormal') || (rr && rr.label === 'abnormal');
   if (anyAbnormal) {
-    $('actxt').textContent = 'AI analysis detected a potential eye abnormality. Please consult an ophthalmologist for a comprehensive examination.';
-    $('rbadge').className = 'rbadge bwarn';
-    $('rbadge').textContent = 'FOLLOW UP';
-    $('rtitle').textContent = 'Follow-up recommended';
+    const existing = $('actxt').textContent.trim();
+    const aiMsg = 'AI analysis detected a potential eye abnormality. Please consult an ophthalmologist for a comprehensive examination.';
+    $('actxt').textContent = existing ? existing + ' ' + aiMsg : aiMsg;
+    if($('rbadge').className.indexOf('bwarn')===-1){
+      $('rbadge').className = 'rbadge bwarn';
+      $('rbadge').textContent = 'FOLLOW UP';
+      $('rtitle').textContent = 'Follow-up recommended';
+    }
   }
 }
 // ── END AI MODEL INTEGRATION ──────────────────────────────────────
