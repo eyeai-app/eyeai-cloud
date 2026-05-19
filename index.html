@@ -130,6 +130,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .escore{font-size:1.4rem;font-weight:600;margin-bottom:2px}
 .escore.ok{color:var(--green)}.escore.warn{color:var(--warn)}.escore.alert{color:var(--danger)}
 .esub{font-size:11px;color:var(--text-dim)}
+.eclbl-row{display:flex;align-items:center;justify-content:center;gap:5px}
+.info-btn{width:16px;height:16px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-dimmer);font-size:10px;font-style:italic;font-family:Georgia,serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;flex-shrink:0}
+.info-btn:hover{border-color:var(--accent);color:var(--accent)}
+#infoPopup{display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:1.5rem}
+#infoPopup.show{display:flex}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.3rem 1.4rem;max-width:300px;width:100%}
+.info-card-title{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--text-dimmer);margin-bottom:.6rem}
+.info-card-txt{font-size:14px;line-height:1.7;color:var(--text)}
+.info-card-close{margin-top:.9rem;font-size:12px;color:var(--text-dimmer);cursor:pointer;text-align:center}
 .ibox{border-radius:var(--r-sm);padding:9px 13px;border:1px solid;font-size:12px;line-height:1.5}
 .ibox-ok{background:var(--green-dim);border-color:rgba(63,185,80,.3);color:var(--green)}
 .ibox-warn{background:var(--warn-dim);border-color:rgba(210,153,34,.3);color:var(--warn)}
@@ -412,11 +421,11 @@ async function loadEmbeddedModels(){
   <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div><button class="lang-btn" onclick="tLang()" id="lb5">עברית</button></div>
   <div class="vbar on" id="vb5"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb5t">Your results are ready</div></div>
   <div class="content">
-    <div class="res-hero"><div class="rbadge bok" id="rbadge">ANALYSED</div><div style="font-size:1.3rem;margin-bottom:.3rem" id="rtitle">Results ready</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="rsub">Based on your eye photos and vision test</div></div>
-    <div class="ecard" id="bcard" style="display:none;margin-bottom:0"><div class="eclbl">Binocular (both eyes)</div><div class="escore" id="bres">—</div><div class="esub" id="bresb">—</div></div>
-    <div class="ecard" id="cbCard" style="display:none;margin-bottom:0"><div class="eclbl">Color Vision</div><div class="escore" id="cbRes">—</div><div class="esub" id="cbResB">—</div></div>
+    <div class="res-hero"><div class="rbadge bok" id="rbadge">ANALYSED</div><div style="font-size:1.75rem;font-weight:800;margin-bottom:.3rem" id="rtitle">Results ready</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="rsub">Based on your eye photos and vision test</div></div>
+    <div class="ecard" id="bcard" style="display:none;margin-bottom:0"><div class="eclbl eclbl-row"><span>Binocular (both eyes)</span><button class="info-btn" onclick="showInfoPopup('Binocular vision',acuityInfoText(scores.both))">i</button></div><div class="escore" id="bres">—</div><div class="esub" id="bresb">—</div></div>
+    <div class="ecard" id="cbCard" style="display:none;margin-bottom:0"><div class="eclbl eclbl-row"><span>Color Vision</span><button class="info-btn" onclick="showInfoPopup('Color vision',cbInfoText(scores.cb?scores.cb.pct:null))">i</button></div><div class="escore" id="cbRes">—</div><div class="esub" id="cbResB">—</div></div>
     <div class="ecard" id="csCard" style="display:none;margin-bottom:0">
-      <div class="eclbl">Contrast Sensitivity</div>
+      <div class="eclbl eclbl-row"><span>Contrast Sensitivity</span><button class="info-btn" onclick="showInfoPopup('Contrast sensitivity',csInfoText(scores.cs&&scores.cs.both!==null?scores.cs.both:scores.cs&&scores.cs.left!==null?scores.cs.left:null))">i</button></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">
         <div style="text-align:center"><div style="font-size:9px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Both</div><div class="escore" id="csBothRes">—</div><div class="esub" id="csBothResB">—</div></div>
         <div style="text-align:center"><div style="font-size:9px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Left</div><div class="escore" id="csLeftRes">—</div><div class="esub" id="csLeftResB">—</div></div>
@@ -424,8 +433,8 @@ async function loadEmbeddedModels(){
       </div>
     </div>
     <div class="ecmp">
-      <div class="ecard"><div class="eclbl" id="lell">Left eye</div><div class="escore" id="lres">—</div><div class="esub" id="lresb">Not tested</div></div>
-      <div class="ecard"><div class="eclbl" id="rell">Right eye</div><div class="escore" id="rres">—</div><div class="esub" id="rresb">Not tested</div></div>
+      <div class="ecard"><div class="eclbl eclbl-row"><span id="lell">Left eye</span><button class="info-btn" onclick="showInfoPopup('Left eye acuity',acuityInfoText(scores.left))">i</button></div><div class="escore" id="lres">—</div><div class="esub" id="lresb">Not tested</div></div>
+      <div class="ecard"><div class="eclbl eclbl-row"><span id="rell">Right eye</span><button class="info-btn" onclick="showInfoPopup('Right eye acuity',acuityInfoText(scores.right))">i</button></div><div class="escore" id="rres">—</div><div class="esub" id="rresb">Not tested</div></div>
     </div>
     <div class="ibox ibox-ok" id="ibox">Eyes appear balanced.</div>
     <div class="hbox"><div class="hlbl" id="hlbl">Your history</div><div class="hgraph" id="hgraph"></div><div class="hleg"><div class="hli"><div class="hldot" style="background:var(--accent)"></div><span id="hll">Left</span></div><div class="hli"><div class="hldot" style="background:var(--green)"></div><span id="hrl">Right</span></div></div></div>
@@ -499,7 +508,7 @@ async function loadEmbeddedModels(){
       <div style="font-size:.9rem;font-weight:600;color:var(--text-dim)" id="csPhLbl">Contrast Sensitivity</div>
       <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);margin-top:2px" id="csLvlLbl">Level 1 / 6</div>
     </div>
-    <div style="font-size:13px;color:var(--text-dim);text-align:center;line-height:1.6;max-width:270px">Can you see the letter clearly?</div>
+    <div style="font-size:13px;color:var(--text-dim);text-align:center;line-height:1.6;max-width:270px">Can you read this letter confidently?</div>
     <div style="background:#fff;border-radius:14px;width:230px;height:190px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,.5)">
       <div id="csLetter" style="font-family:'Courier New',monospace;font-size:130px;font-weight:700;line-height:1;user-select:none;color:#000">E</div>
     </div>
@@ -511,6 +520,35 @@ async function loadEmbeddedModels(){
   <div class="fs-ctrl">
     <button class="fs-btn" id="csMuteBtn" onclick="tVoiceGlobal()" style="width:40px;height:40px;padding:0;border-radius:50%;flex-shrink:0">🔊</button>
     <button class="fs-btn" onclick="skipCSTest()" style="flex:1;text-align:center">Skip contrast test</button>
+  </div>
+</div>
+
+<!-- CONTRAST SENSITIVITY INSTRUCTION OVERLAY -->
+<div class="fs-ov" id="csInstrOv">
+  <div class="fs-body" style="align-items:center;justify-content:center;gap:1.6rem;padding:2rem 1.5rem">
+    <div style="text-align:center">
+      <div style="font-size:.9rem;font-weight:600;color:var(--text-dim)">Contrast Test</div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);margin-top:2px">Instructions</div>
+    </div>
+    <div style="font-size:14px;color:var(--text);line-height:1.8;max-width:290px;text-align:center">
+      You will see letters that get <strong>progressively lighter</strong>.<br><br>
+      Tap <strong style="color:var(--green)">Yes</strong> only if you can read the letter confidently without guessing.<br><br>
+      The moment you are not completely sure — tap <strong style="color:var(--danger)">No</strong>.
+    </div>
+    <button onclick="startCSAfterInstr()" style="padding:14px 32px;border-radius:var(--r-sm);border:none;background:var(--accent);color:#000;font-family:var(--sans);font-size:15px;font-weight:700;cursor:pointer;width:100%;max-width:280px">Begin contrast test →</button>
+  </div>
+  <div class="fs-ctrl">
+    <button class="fs-btn" id="csInstrMuteBtn" onclick="tVoiceGlobal()" style="width:40px;height:40px;padding:0;border-radius:50%;flex-shrink:0">🔊</button>
+    <button class="fs-btn" onclick="skipCSTest()" style="flex:1;text-align:center">Skip contrast test</button>
+  </div>
+</div>
+
+<!-- INFO POPUP -->
+<div id="infoPopup" onclick="hideInfoPopup()">
+  <div class="info-card" onclick="event.stopPropagation()">
+    <div class="info-card-title" id="infoPopupTitle">About this result</div>
+    <div class="info-card-txt" id="infoPopupTxt"></div>
+    <div class="info-card-close" onclick="hideInfoPopup()">Tap anywhere to close</div>
   </div>
 </div>
 
@@ -532,7 +570,7 @@ let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
 let distStream=null,distTimer=null,distConfirm=0,testMode='near',lastDistVoice=0;
 let cbSession=[],cbIdx=0,cbScores=[];
-let csPhase='both',csLevelIdx=0,csProcessing=false;
+let csPhase='both',csLevelIdx=0,csProcessing=false,csLastLetter='',csInstrShown=false;
 
 // Extended Snellen chart — proportional to 40 cm viewing distance.
 // Sizes scale linearly: 6/60 (worst) is 10× the physical height of 6/6.
@@ -686,7 +724,7 @@ function tVoiceGlobal(){
   voiceOn=!voiceOn;
   if(!voiceOn)synth.cancel();
   const vt=$('vtog');if(vt){vt.textContent=voiceOn?'ON':'OFF';vt.classList.toggle('on',voiceOn);}
-  ['gMute','fsMuteBtn','csMuteBtn'].forEach(id=>{const e=$(id);if(e){e.textContent=voiceOn?'🔊':'🔇';e.classList.toggle('muted',!voiceOn);}});
+  ['gMute','fsMuteBtn','csMuteBtn','csInstrMuteBtn'].forEach(id=>{const e=$(id);if(e){e.textContent=voiceOn?'🔊':'🔇';e.classList.toggle('muted',!voiceOn);}});
 }
 
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');}
@@ -1460,7 +1498,7 @@ function onTapBegin(){
 
 function resetAll(){
   photos={left:null,right:null};scores={both:null,left:null,right:null,cb:null,cs:null};
-  curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];csPhase='both';csLevelIdx=0;
+  curEye='left';setEye('left');cbSession=[];cbIdx=0;cbScores=[];csPhase='both';csLevelIdx=0;csLastLetter='';csInstrShown=false;
   tStarted=false;tPaused=false;clearSession();
   stopDistCam();exitCalib();exitFS();exitCBFS();exitCSFS();
   startQ();
@@ -1724,25 +1762,38 @@ function skipCBTest(){exitCBFS();scores.cb=null;initCSTest();}
 
 // ── CONTRAST SENSITIVITY TEST ─────────────────────────────────────
 const CS_LEVELS=[100,50,25,10,5,2];
+const SLOAN_LETTERS=['C','D','E','F','H','N','O','R','S','V','Z'];
 
 function enterCSFS(){const ov=$('csOv');if(ov)ov.classList.add('show');}
 function exitCSFS(){const ov=$('csOv');if(ov)ov.classList.remove('show');}
+function enterCSInstr(){const ov=$('csInstrOv');if(ov)ov.classList.add('show');}
+function exitCSInstr(){const ov=$('csInstrOv');if(ov)ov.classList.remove('show');}
+function startCSAfterInstr(){exitCSInstr();enterCSFS();speakThenDo('Can you read this letter confidently? Tap Yes if you can, No if not.',0.65,500,()=>showCSLevel());}
 
 function initCSTest(){
   csPhase='both';csLevelIdx=0;
   scores.cs={both:null,left:null,right:null};
-  enterCSFS();
-  speakThenDo("Now let's check your contrast sensitivity. Look at the letter on the white card and tell me if you can see it clearly.",0.65,800,()=>showCSLevel());
+  if(!csInstrShown){
+    csInstrShown=true;
+    enterCSInstr();
+    speakThenDo("Now a contrast test. You will see letters that get progressively lighter. Tap Yes only if you can read the letter confidently without guessing. The moment you are not completely sure — tap No.",0.65,800,()=>{});
+  }else{
+    enterCSFS();
+    speakThenDo("Now the contrast test.",0.65,600,()=>showCSLevel());
+  }
 }
 
 function showCSLevel(){
   const pct=CS_LEVELS[csLevelIdx];
   const g=255-Math.round(2.55*pct);
-  const ltr=$('csLetter');if(ltr)ltr.style.color='rgb('+g+','+g+','+g+')';
+  const pool=SLOAN_LETTERS.filter(x=>x!==csLastLetter);
+  const letter=pool[Math.floor(Math.random()*pool.length)];
+  csLastLetter=letter;
+  const ltr=$('csLetter');if(ltr){ltr.style.color='rgb('+g+','+g+','+g+')';ltr.textContent=letter;}
   const phLabel=csPhase==='both'?'Both eyes open':csPhase==='left'?'Cover your right eye':'Cover your left eye';
   const ph=$('csPhLbl');if(ph)ph.textContent=phLabel;
   const lvl=$('csLvlLbl');if(lvl)lvl.textContent='Level '+(csLevelIdx+1)+' / '+CS_LEVELS.length;
-  speakTxt('Can you see the letter clearly?',true,0.65);
+  speakTxt('Can you read this letter confidently?',true,0.65);
   csProcessing=false;
 }
 
@@ -1783,6 +1834,30 @@ function csSensLabel(pct){
   if(pct<=25)return{c:'warn',b:'Moderate reduction'};
   return{c:'alert',b:'Significant reduction'};
 }
+function acuityInfoText(idx){
+  if(idx===null)return'This eye has not been tested yet.';
+  const lb=SNELLEN[idx].lb;
+  const map={'6/6':'Perfect vision. You see at distance what a normal eye sees.','6/5':'Perfect vision. You see at distance what a normal eye sees.','6/7.5':'Mild reduction. Most people don\'t notice this in daily life.','6/9':'Mild reduction. You may benefit from glasses for driving or distance.','6/12':'Moderate reduction. Glasses are likely needed.','6/18':'Significant reduction. Glasses are definitely recommended.'};
+  return map[lb]||'Serious reduction. Please see an optometrist soon.';
+}
+function cbInfoText(pct){
+  if(pct===null)return'Color vision test was not completed.';
+  if(pct>=80)return'Normal color vision. No deficiency detected.';
+  return'Possible color vision deficiency. Mention this to your optometrist.';
+}
+function csInfoText(pct){
+  if(pct===null)return'Contrast sensitivity test was not completed.';
+  if(pct<=5)return'Normal contrast sensitivity.';
+  if(pct<=10)return'Mild reduction. Worth monitoring.';
+  if(pct<=25)return'Moderate reduction. Could indicate early eye changes. See an optometrist.';
+  return'Significant reduction. Please see an optometrist.';
+}
+function showInfoPopup(title,txt){
+  const ti=$('infoPopupTitle'),bo=$('infoPopupTxt');
+  if(ti)ti.textContent=title;if(bo)bo.textContent=txt;
+  $('infoPopup').classList.add('show');
+}
+function hideInfoPopup(){$('infoPopup').classList.remove('show');}
 
 function skipCSTest(){exitCSFS();scores.cs=null;showRes();}
 // ── END CONTRAST SENSITIVITY TEST ─────────────────────────────────
