@@ -517,9 +517,10 @@ async function loadEmbeddedModels(){
     </div>
     <div id="ctQuestionArea" style="display:none;width:100%;max-width:320px">
       <div style="font-size:15px;font-weight:600;color:var(--text);text-align:center;line-height:1.6;margin-bottom:1.2rem" id="ctQuestionTxt"></div>
-      <div style="display:flex;gap:12px">
-        <button onclick="ctAns(ctCurrentQ,false)" style="flex:1;padding:16px 8px;border-radius:var(--r-sm);border:1.5px solid var(--green);background:var(--green-dim);color:var(--green);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer">✓ No</button>
-        <button onclick="ctAns(ctCurrentQ,true)" style="flex:1;padding:16px 8px;border-radius:var(--r-sm);border:1.5px solid var(--warn);background:var(--warn-dim);color:var(--warn);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer">⚠ Yes</button>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button onclick="ctAns(ctCurrentQ,'jumped')" style="padding:14px 16px;border-radius:var(--r-sm);border:1.5px solid var(--warn);background:var(--warn-dim);color:var(--warn);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;text-align:left">⚠ It jumped — sudden shift</button>
+        <button onclick="ctAns(ctCurrentQ,'moved')" style="padding:14px 16px;border-radius:var(--r-sm);border:1.5px solid var(--accent);background:rgba(88,166,255,.12);color:var(--accent);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;text-align:left">↔ It moved — gradual drift</button>
+        <button onclick="ctAns(ctCurrentQ,'still')" style="padding:14px 16px;border-radius:var(--r-sm);border:1.5px solid var(--green);background:var(--green-dim);color:var(--green);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;text-align:left">✓ It stayed still</button>
       </div>
     </div>
   </div>
@@ -596,7 +597,7 @@ let lang='en',voiceOn=true,who='self',curEye='left',stream=null,curCam='front',t
 let photos={left:null,right:null},scores={both:null,left:null,right:null,ct:null,cb:null,cs:null},tPhase='both',tRow=0,tActive=false,tStarted=false,tPaused=false,hist=[];
 let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
-let distStream=null,distTimer=null,distConfirm=0,testMode='near',lastDistVoice=0;
+let distStream=null,distTimer=null,distConfirm=0,testMode='near',lastDistVoice=0,distGuardUntil=0,distPerfectSpoken=false;
 let cbSession=[],cbIdx=0,cbScores=[];
 let csPhase='both',csLevelIdx=0,csProcessing=false,csLastLetter='',csInstrShown=false,csVoiceAsked=false;
 let ctCurrentQ=1,ctAnswers={right:null,left:null};
@@ -1333,10 +1334,10 @@ function showRes(){
   const ctCard=$('ctCard');
   if(ctCard){
     if(scores.ct!==null){
-      const anyJump=scores.ct.rightJump||scores.ct.leftJump;
-      $('ctRes').textContent=anyJump?'Follow up':'No signs';
-      $('ctRes').className='escore '+(anyJump?'warn':'ok');
-      $('ctResB').textContent=anyJump?'Possible eye misalignment':'No misalignment signs detected';
+      const anyIssue=scores.ct.right!=='still'||scores.ct.left!=='still';
+      $('ctRes').textContent=anyIssue?'Follow up':'No signs';
+      $('ctRes').className='escore '+(anyIssue?'warn':'ok');
+      $('ctResB').textContent=anyIssue?'Possible eye misalignment — mention to your optometrist':'No misalignment signs detected';
     }else{
       $('ctRes').textContent='—';$('ctRes').className='escore';
       $('ctResB').textContent='Not completed';
@@ -1368,7 +1369,7 @@ function showRes(){
   }
   const hasImb=scores.left!==null&&scores.right!==null&&Math.abs(scores.left-scores.right)>=2;
   const hasPoor=(scores.left!==null&&scores.left<4)||(scores.right!==null&&scores.right<4)||(scores.both!==null&&scores.both<4);
-  const hasCTIssue=scores.ct&&(scores.ct.rightJump||scores.ct.leftJump);
+  const hasCTIssue=scores.ct&&(scores.ct.right!=='still'||scores.ct.left!=='still');
   const hasCBIssue=scores.cb&&scores.cb.pct<75;
   const hasCsIssue=scores.cs&&(['both','left','right'].some(ph=>scores.cs[ph]!==null&&scores.cs[ph]>5));
   $('actxt').textContent=(hasImb||hasPoor||hasCTIssue||hasCBIssue||hasCsIssue)?t('awk'):t('aok');
@@ -1396,7 +1397,7 @@ function doShare(){
   const rs=scores.right!==null?SNELLEN[scores.right].lb:'Not tested';
   const df=scores.left!==null&&scores.right!==null?Math.abs(scores.left-scores.right):0;
   const note=df>=2?'Interocular difference detected — follow up recommended.':'Eyes appear balanced.';
-  const ctLine=scores.ct?`\nCover test: ${(scores.ct.rightJump||scores.ct.leftJump)?'Follow up recommended':'No misalignment signs detected'}`:'';
+  const ctLine=scores.ct?`\nCover test: ${(scores.ct.right!=='still'||scores.ct.left!=='still')?'Follow up recommended':'No misalignment signs detected'}`:'';
   const cbLine=scores.cb?`\nColor vision: ${scores.cb.pct}% (${scores.cb.correct}/${scores.cb.total} plates correct)`:'';
   const csLine=scores.cs?`\nContrast sensitivity: Both ${scores.cs.both!==null?scores.cs.both+'%':'—'}, Left ${scores.cs.left!==null?scores.cs.left+'%':'—'}, Right ${scores.cs.right!==null?scores.cs.right+'%':'—'}`:'';
   const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}${ctLine}${cbLine}${csLine}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
@@ -1447,7 +1448,7 @@ function calNext(){
     $('t-setup').style.display='none';
     setTimeout(()=>{
       speakThenDo('Good. Now the test begins. Look at the letters and answer honestly.',0.65,1200,()=>{
-        startDistCam(true);   // start AFTER voice finishes — no overlap with transition voice
+        startDistCam();       // speaks neutral intro; guard prevents immediate corrective voice
         tRow=0;tActive=true;
         enterFS();
         runPhase('both');
@@ -1576,11 +1577,13 @@ async function startDistCam(skipVoice=false){
     distStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:320},height:{ideal:240}}});
     const dv=$('distVid');dv.srcObject=distStream;
     await dv.play().catch(()=>{});
-    startDistQ();
+    distPerfectSpoken=false;
+    distGuardUntil=Date.now()+1500;
+    lastDistVoice=Date.now();
     if(!skipVoice){
-      const tgt=DIST_TGT[testMode];
-      setTimeout(()=>speakTxt('Hold the screen at '+tgt.label+' from your face. The bar will turn green when the distance is right.',true),500);
+      speakTxt('Please hold your phone about 40 centimeters away.',true);
     }
+    startDistQ();
   }catch(e){
     // Camera unavailable — let user start manually
     const btn=$('t-ready-btn');
@@ -1631,15 +1634,15 @@ function updateDistBar(eyeSpan){
     color='var(--green)';distConfirm++;
     const secs=Math.max(0,Math.ceil((8-distConfirm)/4));
     statusTxt=distConfirm>=8?'✓ Perfect — starting now':secs>0?`✓ Perfect — hold still… ${secs}s`:'✓ Perfect distance';
-    if(distConfirm===4)voiceTxt='Perfect distance. Hold still.';
+    if(!distPerfectSpoken&&distConfirm>=4&&Date.now()>=distGuardUntil){voiceTxt='Perfect distance. Hold still.';distPerfectSpoken=true;}
   }else if(tooClose){
     color='var(--warn)';distConfirm=0;statusTxt='↑ Move a little further back';
-    if(Date.now()-lastDistVoice>3500)voiceTxt='Move a little further back.';
+    if(Date.now()>=distGuardUntil&&Date.now()-lastDistVoice>3500)voiceTxt='Move a little further back.';
   }else{
     const veryFar=eyeSpan<tgt.min*0.55;
     color=veryFar?'var(--danger)':'var(--warn)';distConfirm=0;
     statusTxt=veryFar?'↓ Move much closer':'↓ Move a little closer';
-    if(Date.now()-lastDistVoice>3500)voiceTxt=veryFar?'Move closer to the screen.':'A little closer.';
+    if(Date.now()>=distGuardUntil&&Date.now()-lastDistVoice>3500)voiceTxt=veryFar?'Move closer to the screen.':'A little closer.';
   }
   fill.style.width=barPct+'%';fill.style.background=color;
   const fsf=$('fsDistFill');if(fsf){fsf.style.width=barPct+'%';fsf.style.background=color;}
@@ -1841,22 +1844,22 @@ function showCTQuestion(qNum){
   ctCurrentQ=qNum;
   const ia=$('ctInstrArea'),qa=$('ctQuestionArea');
   if(ia)ia.style.display='none';if(qa)qa.style.display='';
-  const q=qNum===1?'When you covered your right eye, did the dot appear to jump or move?':'When you covered your left eye, did the dot appear to jump or move?';
+  const q=qNum===1?'When you uncovered your right eye, what did the dot do?':'When you uncovered your left eye, what did the dot do?';
   const qt=$('ctQuestionTxt');if(qt)qt.textContent=q;
   speakTxt(q,true,0.65);
 }
 
-function ctAns(qNum,jumped){
-  if(qNum===1){ctAnswers.right=jumped;setTimeout(()=>showCTQuestion(2),400);}
-  else{ctAnswers.left=jumped;setTimeout(()=>finishCoverTest(),400);}
+function ctAns(qNum,answer){
+  if(qNum===1){ctAnswers.right=answer;setTimeout(()=>showCTQuestion(2),400);}
+  else{ctAnswers.left=answer;setTimeout(()=>finishCoverTest(),400);}
 }
 
 function finishCoverTest(){
   exitCTFS();
-  scores.ct={rightJump:ctAnswers.right,leftJump:ctAnswers.left};
+  scores.ct={right:ctAnswers.right,left:ctAnswers.left};
   saveSession();
-  const anyJump=ctAnswers.right||ctAnswers.left;
-  speakThenDo(anyJump?"Thank you. Now let's check your color vision.":"Good. Now let's check your color vision.",0.65,800,()=>initCBTest());
+  const anyIssue=ctAnswers.right!=='still'||ctAnswers.left!=='still';
+  speakThenDo(anyIssue?"Thank you. Now let's check your color vision.":"Good. Now let's check your color vision.",0.65,800,()=>initCBTest());
 }
 
 function skipCoverTest(){exitCTFS();scores.ct=null;initCBTest();}
@@ -1937,7 +1940,10 @@ function csSensLabel(pct){
   return{c:'alert',b:'Significant reduction'};
 }
 function ctInfoText(){
-  return "This test checks if your eyes are properly aligned. If the dot appeared to jump when covering one eye, this may indicate a slight misalignment. This is not a diagnosis — please mention it to your optometrist.";
+  if(!scores.ct)return"This test checks if your eyes are properly aligned. When one eye is covered then uncovered, a well-aligned eye stays fixed. A jump or drift may indicate a slight misalignment.";
+  const anyIssue=scores.ct.right!=='still'||scores.ct.left!=='still';
+  if(!anyIssue)return"Both eyes stayed still — no signs of misalignment detected. This is a normal result.";
+  return"One or both eyes shifted during the test. A sudden jump or gradual drift can indicate eye misalignment. This is not a diagnosis — please mention it to your optometrist.";
 }
 function acuityInfoText(idx){
   if(idx===null)return'This eye has not been tested yet.';
