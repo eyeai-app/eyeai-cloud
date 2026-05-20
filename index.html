@@ -266,7 +266,7 @@ async function loadEmbeddedModels(){
 <!-- SWHO: WHO ARE WE SCREENING TODAY? -->
 <div class="screen" id="sWho" style="align-items:center;justify-content:center;padding:2rem 1.4rem;gap:1.5rem">
   <div class="logo-row" style="margin-bottom:.3rem"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div>
-  <div style="font-size:1.55rem;font-weight:700;color:var(--text);text-align:center;line-height:1.3">Who are we screening today?</div>
+  <div style="font-size:1.55rem;font-weight:700;color:var(--text);text-align:center;line-height:1.3">Who will be doing the screening today?</div>
   <div id="sWhoCards" style="display:flex;flex-direction:column;gap:.85rem;width:100%">
     <button onclick="whoSelect('self')" style="display:flex;align-items:center;gap:1rem;padding:1.1rem 1.2rem;border-radius:var(--r);border:2px solid var(--accent);background:var(--accent-dim);width:100%;cursor:pointer;text-align:left;transition:border-color .2s">
       <span style="font-size:1.7rem;line-height:1">👤</span>
@@ -1536,7 +1536,7 @@ function doStartOver(){
 // ── WHO SCREEN ─────────────────────────────────────────────────────
 function whoEnter(){
   whoShowCards();
-  setTimeout(()=>speakTxt('Who are we screening today?',true,0.65),500);
+  setTimeout(()=>speakTxt('Who will be doing the screening today?',true,0.65),500);
 }
 function whoShowCards(){
   const c=$('sWhoCards'),a=$('sWhoAge'),y=$('sWhoTooYoung');
@@ -1585,21 +1585,16 @@ function onTapBegin(){
   ts.dataset.tapped='1';
   unlockAudio();
   const lbl=$('tapLbl');if(lbl)lbl.textContent='Starting…';
-  const proceed=()=>{
+  const showWho=()=>{
+    if(ts.style.display==='none')return;
     ts.style.display='none';
     go('sWho');whoEnter();
   };
-  if(!voiceOn){proceed();return;}
-  const doSpeak=()=>{
-    const txt="Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.";
-    setVtxt(txt);setVon(true);synth.cancel();
-    const u=new SpeechSynthesisUtterance(txt);
-    _applyVoice(u);u.rate=0.65;
-    u.onend=()=>{setVon(false);proceed();};
-    synth.speak(u);
-    setTimeout(()=>{if(ts.style.display!=='none')proceed();},15000);
+  const doWelcome=()=>{
+    speakThenDo("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",0.65,0,showWho);
+    setTimeout(showWho,15000);
   };
-  if(_voiceReadyPromise)_voiceReadyPromise.then(doSpeak);else doSpeak();
+  if(_voiceReadyPromise)_voiceReadyPromise.then(doWelcome);else doWelcome();
 }
 // ── END SESSION MEMORY ────────────────────────────────────────────
 
