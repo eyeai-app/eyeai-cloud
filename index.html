@@ -263,6 +263,14 @@ async function loadEmbeddedModels(){
   <button class="btn-s" style="max-width:300px;width:100%" onclick="doStartOver()">Start over</button>
 </div>
 
+<!-- SWELCOME: WELCOME -->
+<div class="screen" id="sWelcome" style="align-items:center;justify-content:center">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+    <div style="width:56px;height:56px;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:16px;height:16px;background:var(--accent);border-radius:50%;animation:blink 2.5s ease-in-out infinite"></div></div>
+    <span style="font-family:var(--mono);font-size:14px;color:var(--accent);letter-spacing:.2em">EYEAI</span>
+  </div>
+</div>
+
 <!-- SWHO: WHO ARE WE SCREENING TODAY? -->
 <div class="screen" id="sWho" style="align-items:center;justify-content:center;padding:2rem 1.4rem;gap:1.5rem">
   <div class="logo-row" style="margin-bottom:.3rem"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div>
@@ -1584,15 +1592,13 @@ function onTapBegin(){
   if(!ts||ts.dataset.tapped)return;
   ts.dataset.tapped='1';
   unlockAudio();
-  const lbl=$('tapLbl');if(lbl)lbl.textContent='Starting…';
-  const showWho=()=>{
-    if(ts.style.display==='none')return;
-    ts.style.display='none';
-    go('sWho');whoEnter();
-  };
+  ts.style.display='none';
+  go('sWelcome');
+  let whoShown=false;
+  const goWho=()=>{if(whoShown)return;whoShown=true;go('sWho');whoEnter();};
   const doWelcome=()=>{
-    speakThenDo("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",0.65,0,showWho);
-    setTimeout(showWho,15000);
+    speakThenDo("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",0.65,0,goWho);
+    setTimeout(goWho,15000);
   };
   if(_voiceReadyPromise)_voiceReadyPromise.then(doWelcome);else doWelcome();
 }
