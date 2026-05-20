@@ -1597,10 +1597,11 @@ function onTapBegin(){
   let whoShown=false;
   const goWho=()=>{if(whoShown)return;whoShown=true;go('sWho');whoEnter();};
   const doWelcome=()=>{
+    if(whoShown)return;
     speakThenDo("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",0.65,0,goWho);
     setTimeout(goWho,15000);
   };
-  if(_voiceReadyPromise)_voiceReadyPromise.then(doWelcome);else doWelcome();
+  setTimeout(()=>{if(_voiceReadyPromise)_voiceReadyPromise.then(doWelcome);else doWelcome();},0);
 }
 // ── END SESSION MEMORY ────────────────────────────────────────────
 
