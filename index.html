@@ -828,7 +828,7 @@ async function initFaceMesh(){
 
 function startQ(){
   if(qTimer)clearInterval(qTimer);
-  let lf=null,fn=0,expBuf=[],lastVoice={dark:0,bright:0,still:0,closer:0,tilt:0,dir:0};
+  let lf=null,fn=0,expBuf=[],lastVoice={dark:0,bright:0,still:0,closer:0,tilt:0,dir:0,perfect:0};let prevGoodTick=0;
   const HOLD_NEEDED=32; // 8s at 250ms — countdown only begins once face mesh confirms an eye
 
   qTimer=setInterval(()=>{
@@ -909,6 +909,7 @@ function startQ(){
     }
 
     const now=Date.now();
+    const wasInCountdown=prevGoodTick>0;
     const ov=$('oval'),qs=$('qstat');
 
     if(!tiltOK){
@@ -926,10 +927,8 @@ function startQ(){
     }else if(!eyeDetected||eyeFillPct<40){
       ov.className='oval warn';
       qs.textContent=eyeFillPct<20?'MOVE CLOSER':'CENTER EYE';autoCapReady=0;
-      if(now-lastVoice.closer>4000){
-        speakTxt(eyeFillPct<20?'Move closer to the camera':'Center your eye in the oval',false);
-        lastVoice.closer=now;
-      }
+      if(wasInCountdown&&now-lastVoice.closer>2000){speakTxt('Almost there, keep steady.',false);lastVoice.closer=now;}
+      else if(!wasInCountdown&&now-lastVoice.closer>4000){speakTxt(eyeFillPct<20?'Move closer to the camera':'Center your eye in the oval',false);lastVoice.closer=now;}
     }else if(!latestLandmarks||latestLandmarks.length<=473){
       // Eye fill looks OK by pixels but face mesh hasn't confirmed it yet — wait, don't count down
       ov.className='oval warn';qs.textContent='ALIGN EYE';autoCapReady=0;
@@ -937,9 +936,10 @@ function startQ(){
       // Face mesh confirms a real eye landmark inside the oval — start the hold countdown
       autoCapReady++;
       const countdown=Math.max(0,HOLD_NEEDED-autoCapReady);
+      if(autoCapReady===1&&now-lastVoice.perfect>3000){speakTxt('Perfect, hold still.',false);lastVoice.perfect=now;}
       if(countdown>0){
-        ov.className='oval warn';
-        qs.textContent=countdown<=5?'HOLD '+countdown:'STEADY...';
+        ov.className='oval good';
+        qs.textContent=countdown<=5?'HOLD '+countdown:'Hold still…';
         if(autoCapReady===HOLD_NEEDED-3)speakTxt('3',false);
         if(autoCapReady===HOLD_NEEDED-2)speakTxt('2',false);
         if(autoCapReady===HOLD_NEEDED-1)speakTxt('1',false);
@@ -974,6 +974,7 @@ function startQ(){
     }
     // ── END DIRECTIONAL ARROWS ────────────────────────────────────────
     $('capbtn').disabled=!(lp>=25&&lp<=88&&sp>=35&&(eyeDetected||eyeFillPct>=40));
+    prevGoodTick=autoCapReady;
   },250);
 }
 
