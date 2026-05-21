@@ -1536,11 +1536,15 @@ function doStartOver(){
 // ── WHO SCREEN ─────────────────────────────────────────────────────
 function whoEnter(){
   whoShowCards();
-  speakThenDo('Welcome to Eye AI.',0.65,500,()=>{
-    speakThenDo('This app guides you through a full eye health check.',0.65,500,()=>{
-      speakThenDo('Who will be doing the screening today?',0.65,0,()=>{});
+  setTimeout(()=>{
+    speakThenDo('Welcome to Eye AI.',0.65,400,()=>{
+      speakThenDo('A personal eye screening tool.',0.65,400,()=>{
+        speakThenDo('Designed for early detection of conditions that are often missed.',0.65,1000,()=>{
+          speakThenDo('Who will be doing the screening today?',0.65,0,()=>{});
+        });
+      });
     });
-  });
+  },600);
 }
 function whoShowCards(){
   const c=$('sWhoCards'),a=$('sWhoAge'),y=$('sWhoTooYoung');
