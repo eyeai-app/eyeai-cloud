@@ -263,14 +263,6 @@ async function loadEmbeddedModels(){
   <button class="btn-s" style="max-width:300px;width:100%" onclick="doStartOver()">Start over</button>
 </div>
 
-<!-- SWELCOME: WELCOME -->
-<div class="screen" id="sWelcome" style="align-items:center;justify-content:center">
-  <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
-    <div style="width:56px;height:56px;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:16px;height:16px;background:var(--accent);border-radius:50%;animation:blink 2.5s ease-in-out infinite"></div></div>
-    <span style="font-family:var(--mono);font-size:14px;color:var(--accent);letter-spacing:.2em">EYEAI</span>
-  </div>
-</div>
-
 <!-- SWHO: WHO ARE WE SCREENING TODAY? -->
 <div class="screen" id="sWho" style="align-items:center;justify-content:center;padding:2rem 1.4rem;gap:1.5rem">
   <div class="logo-row" style="margin-bottom:.3rem"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div>
@@ -1544,7 +1536,9 @@ function doStartOver(){
 // ── WHO SCREEN ─────────────────────────────────────────────────────
 function whoEnter(){
   whoShowCards();
-  setTimeout(()=>speakTxt('Who will be doing the screening today?',true,0.65),500);
+  speakThenDo('Welcome to EyeAI. This app will guide you through a complete eye health check.',0.65,1000,()=>{
+    speakTxt('Who will be doing the screening today?',true,0.65);
+  });
 }
 function whoShowCards(){
   const c=$('sWhoCards'),a=$('sWhoAge'),y=$('sWhoTooYoung');
@@ -1593,15 +1587,8 @@ function onTapBegin(){
   ts.dataset.tapped='1';
   unlockAudio();
   ts.style.display='none';
-  go('sWelcome');
-  let whoShown=false;
-  const goWho=()=>{if(whoShown)return;whoShown=true;go('sWho');whoEnter();};
-  const doWelcome=()=>{
-    if(whoShown)return;
-    speakThenDo("Welcome to EyeAI. This app will guide you through a complete eye health check. Take your time and follow the instructions. Let's begin.",0.65,0,goWho);
-    setTimeout(goWho,15000);
-  };
-  setTimeout(()=>{if(_voiceReadyPromise)_voiceReadyPromise.then(doWelcome);else doWelcome();},0);
+  go('sWho');
+  whoEnter();
 }
 // ── END SESSION MEMORY ────────────────────────────────────────────
 

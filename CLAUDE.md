@@ -24,11 +24,10 @@ Then open `http://localhost:8080` on the device being tested. iOS testing requir
 All HTML, CSS, and JS lives in `index.html` (~2170 lines). Sections are delimited by comments like `// ── SECTION NAME ───`.
 
 ### Screen system
-Seven screens (`<div class="screen" id="...">`), only one active at a time via `.active` class. `go(id)` switches between them.
+Six screens (`<div class="screen" id="...">`), only one active at a time via `.active` class. `go(id)` switches between them.
 
 | ID | Purpose |
 |----|---------|
-| `sWelcome` | Welcome logo screen — shown immediately after tap, welcome voice plays here |
 | `sWho` | "Who will be doing the screening today?" — Myself / My child / Clinical selection |
 | `s1` | Settings — voice toggle, terms checkbox, AI model status, Start scan button |
 | `s2` | Camera / eye photo capture |
@@ -39,10 +38,8 @@ Seven screens (`<div class="screen" id="...">`), only one active at a time via `
 ### Pre-test flow (tap → camera)
 ```
 Tap to Begin
-  → onTapBegin(): tap screen hides immediately → go('sWelcome')
-  → welcome voice plays on sWelcome (via speakThenDo + _voiceReadyPromise)
-  → goWho() → go('sWho') + whoEnter()
-  → 500ms → "Who will be doing the screening today?" voice
+  → onTapBegin(): tap screen hides immediately → go('sWho') + whoEnter()
+  → whoEnter(): speakThenDo("Welcome to EyeAI...") → 1000ms pause → speakTxt("Who will be doing the screening today?")
   → user selects Myself or My child
   → whoSelect() → speakThenDo(..., 1500ms, proceedToS1)
   → proceedToS1(): loadSession() check → go('s1') [or showRecoverUI()]
