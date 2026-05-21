@@ -1536,8 +1536,10 @@ function doStartOver(){
 // ── WHO SCREEN ─────────────────────────────────────────────────────
 function whoEnter(){
   whoShowCards();
-  speakThenDo('Welcome to Eye AI. This app will guide you through a complete eye health check.',0.65,1000,()=>{
-    speakTxt('Who will be doing the screening today?',true,0.65);
+  speakThenDo('Welcome to Eye AI.',0.65,200,()=>{
+    speakThenDo('This app will guide you through a complete eye health check.',0.65,200,()=>{
+      speakThenDo('Who will be doing the screening today?',0.65,0,()=>{});
+    });
   });
 }
 function whoShowCards(){
