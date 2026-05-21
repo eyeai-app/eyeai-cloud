@@ -21,7 +21,7 @@ Then open `http://localhost:8080` on the device being tested. iOS testing requir
 ## Architecture
 
 ### Single-file structure
-All HTML, CSS, and JS lives in `index.html` (~2170 lines). Sections are delimited by comments like `// ── SECTION NAME ───`.
+All HTML, CSS, and JS lives in `index.html` (~2009 lines). Sections are delimited by comments like `// ── SECTION NAME ───`.
 
 ### Screen system
 Six screens (`<div class="screen" id="...">`), only one active at a time via `.active` class. `go(id)` switches between them.
@@ -109,8 +109,9 @@ Distance measurement uses only the `near` mode (40cm target, eye-span range 0.12
 - `speak(key)` — speaks a translation key from the `TR` object
 - `speakTxt(txt, force, rate)` — speaks a literal string; `force=true` cancels any ongoing speech first
 - `speakThenDo(txt, rate, pauseAfter, callback)` — speaks then waits `pauseAfter` ms before calling callback; handles `onerror` as well as `onend`; always use this for screen transitions
-- `_voiceReadyPromise` — resolved by `initVoices()` on page load; defer any speech that must use the best voice by chaining off this promise
+- `_voiceReadyPromise` — resolved by `initVoices()` on page load; internal to voice init, not for external use
 - All voice uses `_bestVoice` (pre-selected female English voice); iOS requires `unlockAudio()` from a user gesture before any speech
+- **TTS text gotcha**: the app name must be written `"Eye AI"` (with a space) in any spoken string — `"EyeAI"` as one token causes some TTS engines to fire `onerror` mid-utterance, silently dropping the rest of the sentence
 
 ### Session recovery
 `eyeai_sess` localStorage key stores `{scores, timestamp}`. `proceedToS1()` checks for a saved session after the sWho selection. `showRecoverUI()` displays the recover overlay; `doRecover()` routes back into the correct test based on which `scores` fields are non-null — the order is: `right===null` → acuity, `ct===null` → cover test, `cb===null` → color test, `cs===null` → contrast test, else results.
