@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EyeAI</title>
+<title>Eye AI</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Syne+Mono&display=swap');
 :root{--bg:#07090d;--surface:#0f1318;--surface2:#161b22;--border:rgba(88,166,255,.14);--accent:#58a6ff;--accent-dim:rgba(88,166,255,.12);--green:#3fb950;--green-dim:rgba(63,185,80,.14);--warn:#d29922;--warn-dim:rgba(210,153,34,.14);--danger:#f85149;--danger-dim:rgba(248,81,73,.12);--text:#e6edf3;--text-dim:#7d8590;--text-dimmer:#30363d;--mono:'Syne Mono',monospace;--sans:'Syne',sans-serif;--r:12px;--r-sm:8px}
@@ -126,13 +126,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .bwarn{background:var(--warn-dim);color:var(--warn);border:1px solid rgba(210,153,34,.3)}
 .ecmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ecard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:.75rem;text-align:center}
-.eclbl{font-size:14px;font-weight:600;font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:6px}
-.escore{font-size:1.6rem;font-weight:700;margin-bottom:2px}
+.eclbl{font-size:14px;font-weight:700;font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:6px}
+.escore{font-size:1.8rem;font-weight:700;margin-bottom:2px}
 .escore.ok{color:var(--green)}.escore.warn{color:var(--warn)}.escore.alert{color:var(--danger)}
 .esub{font-size:11px;color:var(--text-dim)}
 .eclbl-row{display:flex;align-items:center;justify-content:center;gap:5px}
-.info-btn{width:16px;height:16px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-dimmer);font-size:10px;font-style:italic;font-family:Georgia,serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;flex-shrink:0}
-.info-btn:hover{border-color:var(--accent);color:var(--accent)}
+.info-btn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-style:italic;font-family:Georgia,serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;flex-shrink:0;box-shadow:0 0 6px rgba(88,166,255,.35)}
+.info-btn:hover{background:var(--accent-dim);box-shadow:0 0 10px rgba(88,166,255,.6)}
 #infoPopup{display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:1.5rem}
 #infoPopup.show{display:flex}
 .info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.3rem 1.4rem;max-width:300px;width:100%}
@@ -250,7 +250,7 @@ async function loadEmbeddedModels(){
 <!-- TAP TO BEGIN -->
 <div id="tapScreen" onclick="onTapBegin()" style="position:fixed;inset:0;z-index:700;background:#07090d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;cursor:pointer;user-select:none;-webkit-user-select:none">
   <div style="width:64px;height:64px;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:18px;height:18px;background:var(--accent);border-radius:50%;animation:blink 2.5s ease-in-out infinite"></div></div>
-  <div style="font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.2em;margin-top:.2rem">EYEAI</div>
+  <div style="font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.2em;margin-top:.2rem">EYE AI</div>
   <div style="font-size:1.75rem;font-weight:700;color:var(--text);margin-top:.3rem">Tap to Begin</div>
   <div id="tapLbl" style="font-size:13px;color:var(--text-dim);text-align:center;line-height:1.6;max-width:230px">Touch anywhere to start your<br>eye health check</div>
 </div>
@@ -265,7 +265,7 @@ async function loadEmbeddedModels(){
 
 <!-- SWHO: WHO ARE WE SCREENING TODAY? -->
 <div class="screen" id="sWho" style="align-items:center;justify-content:center;padding:2rem 1.4rem;gap:1.5rem">
-  <div class="logo-row" style="margin-bottom:.3rem"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div>
+  <div class="logo-row" style="margin-bottom:.3rem"><div class="logo-eye"></div><span class="logo-txt">EYE AI</span></div>
   <div style="font-size:1.55rem;font-weight:700;color:var(--text);text-align:center;line-height:1.3">Who will be doing the screening today?</div>
   <div id="sWhoCards" style="display:flex;flex-direction:column;gap:.85rem;width:100%">
     <button onclick="whoSelect('self')" style="display:flex;align-items:center;gap:1rem;padding:1.1rem 1.2rem;border-radius:var(--r);border:2px solid var(--accent);background:var(--accent-dim);width:100%;cursor:pointer;text-align:left;transition:border-color .2s">
@@ -297,10 +297,10 @@ async function loadEmbeddedModels(){
 <!-- S1 WELCOME -->
 <div class="screen active" id="s1">
   <div class="s-hdr">
-    <div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div>
+    <div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYE AI</span></div>
     <button class="lang-btn" onclick="tLang()" id="lb1">עברית</button>
   </div>
-  <div class="vbar" id="vb1"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb1t">Welcome to EyeAI</div><button class="vtoggle on" id="vtog" onclick="tVoice()">ON</button></div>
+  <div class="vbar" id="vb1"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb1t">Welcome to Eye AI</div><button class="vtoggle on" id="vtog" onclick="tVoice()">ON</button></div>
   <div class="content">
     <div class="hero"><h1>See what<br><em>clinics miss</em></h1><p id="s1sub">Early eye detection. Any phone. Any environment.</p></div>
 
@@ -329,7 +329,7 @@ async function loadEmbeddedModels(){
 <!-- S2 CAMERA -->
 <div class="screen" id="s2">
   <div class="s-hdr">
-    <div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div>
+    <div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYE AI</span></div>
     <button class="lang-btn" onclick="tLang()" id="lb2">עברית</button>
   </div>
   <div class="vf" id="vf">
@@ -376,7 +376,7 @@ async function loadEmbeddedModels(){
 
 <!-- S3 REVIEW -->
 <div class="screen" id="s3">
-  <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div><button class="lang-btn" onclick="tLang()" id="lb3">עברית</button></div>
+  <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYE AI</span></div><button class="lang-btn" onclick="tLang()" id="lb3">עברית</button></div>
   <div class="vbar on" id="vb3"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb3t">Review your photo</div></div>
   <div class="content">
     <div class="eyetrack"><div class="echip cur" id="chl">👁 Left eye</div><div class="echip pend" id="chr">👁 Right eye</div></div>
@@ -389,7 +389,7 @@ async function loadEmbeddedModels(){
 
 <!-- S4 VISION TEST -->
 <div class="screen" id="s4">
-  <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div><button class="lang-btn" onclick="tLang()" id="lb4">עברית</button></div>
+  <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYE AI</span></div><button class="lang-btn" onclick="tLang()" id="lb4">עברית</button></div>
   <div class="vbar" id="vb4"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb4t">Vision acuity test</div></div>
   <div class="content">
 
@@ -435,10 +435,10 @@ async function loadEmbeddedModels(){
 
 <!-- S5 RESULTS -->
 <div class="screen" id="s5">
-  <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYEAI</span></div><button class="lang-btn" onclick="tLang()" id="lb5">עברית</button></div>
+  <div class="s-hdr"><div class="logo-row"><div class="logo-eye"></div><span class="logo-txt">EYE AI</span></div><button class="lang-btn" onclick="tLang()" id="lb5">עברית</button></div>
   <div class="vbar on" id="vb5"><div class="waves"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="vbar-txt" id="vb5t">Your results are ready</div></div>
   <div class="content">
-    <div class="res-hero"><div class="rbadge bok" id="rbadge">ANALYSED</div><div style="font-size:1.75rem;font-weight:800;margin-bottom:.3rem" id="rtitle">Results ready</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="rsub">Based on your eye photos and vision test</div></div>
+    <div class="res-hero"><div class="rbadge bok" id="rbadge">ANALYSED</div><div style="font-size:2.2rem;font-weight:800;margin-bottom:.3rem;line-height:1.15" id="rtitle">Results ready</div><div style="font-size:12px;color:var(--text-dim);line-height:1.5" id="rsub">Based on your eye photos and vision test</div></div>
     <div class="ecard" id="bcard" style="display:none;margin-bottom:0"><div class="eclbl eclbl-row"><span>Binocular (both eyes)</span><button class="info-btn" onclick="showInfoPopup('Binocular vision',acuityInfoText(scores.both))">i</button></div><div class="escore" id="bres">—</div><div class="esub" id="bresb">—</div></div>
     <div class="ecard" id="ctCard" style="margin-bottom:0"><div class="eclbl eclbl-row"><span>Cover Test</span><button class="info-btn" onclick="showInfoPopup('Cover test',ctInfoText())">i</button></div><div class="escore" id="ctRes">—</div><div class="esub" id="ctResB">Not completed</div></div>
     <div class="ecard" id="cbCard" style="display:none;margin-bottom:0"><div class="eclbl eclbl-row"><span>Color Vision</span><button class="info-btn" onclick="showInfoPopup('Color vision',cbInfoText(scores.cb?scores.cb.pct:null))">i</button></div><div class="escore" id="cbRes">—</div><div class="esub" id="cbResB">—</div></div>
@@ -606,8 +606,8 @@ async function loadEmbeddedModels(){
 
 <script>
 const TR={
-  en:{lsw:'עברית',sub:'Early eye detection. Any phone. Any environment.',lv:'Voice guidance',von:'On',voff:'Off',terms:'I understand this is a wellness tool, not a medical diagnosis. I agree to the privacy policy.',priv:'🔒 All photos are analysed on your device. Nothing uploaded externally.',start:'Start scan →',camno:'Camera access needed. Tap Upload or enable permission.',fl:'FRONT',bl:'BACK',frontl:'Front',backl:'Back',torchl:'Flash',upl:'Upload',ell:'👁 Left eye',erl:'👁 Right eye',rk:'↩ Retake',up:'Use photo →',addp:'+ Add another photo (clinical)',ttitle:'Vision Test',tsub:'Test each eye separately. Cover one eye with your hand.',dtip:"Hold screen at arm's length — about 40cm",ayes:'Correct',ano:"Couldn't read",skip:'Skip this test',cr:'Cover your right eye.',cl:'Cover your left eye.',rl:'Read the letters then tap your answer.',done:'Test complete. See results below.',nv:'Normal vision',mr:'Mild reduction',mod:'Moderate reduction',na:'Needs attention',bal:'✓ Eyes balanced. No significant difference. Keep testing monthly.',imb:'⚠ Interocular difference detected. Eyes differ in acuity — exactly what EyeAI tracks monthly. Mention this to an optometrist.',aok:'Vision appears within normal range. Continue monthly testing.',awk:'A difference between your eyes was detected. Mention this to your optometrist.',hlbl:'Your history',hll:'Left',hrl:'Right',aclbl:'What to do next',share:'📄 Share with doctor',disc:'⚠ Wellness screening only — not a medical diagnosis. Always consult a qualified ophthalmologist.',vwel:'Welcome to EyeAI. Choose who you are scanning and set your voice preference.',vcam:'Camera ready. Align the eye to the oval on screen.',vdark:'Lighting too dark. Move to a brighter area.',vbri:'Too bright. Move away from direct sunlight.',vstil:'Hold the phone steady.',vrdy:'Good. Hold still. Ready to capture.',vcap:'Photo captured. Review quality below.',voth:'Now scan the other eye.',vboth:'Both eyes captured. Now the vision test.',vres:'Your results are ready.'},
-  he:{lsw:'English',sub:'גילוי עיניים מוקדם. כל טלפון. כל סביבה.',lv:'הנחיה קולית',von:'פועל',voff:'כבוי',terms:'אני מבין/ה שזהו כלי סקר ולא אבחנה רפואית. אני מסכים/ה.',priv:'🔒 כל התמונות מנותחות על המכשיר. לא מועלה שום דבר.',start:'התחל סריקה ←',camno:'נדרשת גישה למצלמה. לחץ העלה או אפשר הרשאה.',fl:'קדמי',bl:'אחורי',frontl:'קדמי',backl:'אחורי',torchl:'פנס',upl:'העלה',ell:'👁 עין שמאל',erl:'👁 עין ימין',rk:'↩ צלם שוב',up:'השתמש בתמונה ←',addp:'+ הוסף תמונה נוספת (קליני)',ttitle:'בדיקת חדות ראיה',tsub:'בדוק כל עין בנפרד. כסה עין אחת.',dtip:'החזק את המסך במרחק זרוע — כ-40 ס"מ',ayes:'קראתי נכון',ano:'לא הצלחתי',skip:'דלג על בדיקה זו',cr:'כסה את עין ימין.',cl:'כסה את עין שמאל.',rl:'קרא את האותיות ואז הקש תשובה.',done:'הבדיקה הסתיימה.',nv:'ראיה תקינה',mr:'ירידה קלה',mod:'ירידה בינונית',na:'דרוש בדיקה',bal:'✓ העיניים מאוזנות. המשך בבדיקות חודשיות.',imb:'⚠ זוהה הבדל בין עיניים. מומלץ לציין לאופטומטריסט.',aok:'הראיה בטווח הנורמלי. המשך בבדיקות חודשיות.',awk:'זוהה הבדל. ציין זאת לאופטומטריסט.',hlbl:'ההיסטוריה שלך',hll:'שמאל',hrl:'ימין',aclbl:'מה לעשות עכשיו',share:'📄 שתף עם רופא',disc:'⚠ סקר רווחה בלבד — לא אבחנה. יש להתייעץ עם רופא עיניים.',vwel:'ברוכים הבאים ל-EyeAI. בחר את מי אתה סורק.',vcam:'המצלמה מוכנה. יישר את העין לאליפסה.',vdark:'תאורה חשוכה. עבור לאזור בהיר יותר.',vbri:'בהיר מדי. התרחק מאור ישיר.',vstil:'החזק את הטלפון יציב.',vrdy:'מצוין. אל תזוז.',vcap:'תמונה צולמה. בדוק את האיכות.',voth:'סרוק את העין השנייה.',vboth:'שתי העיניים צולמו. עכשיו בדיקת ראיה.',vres:'התוצאות שלך מוכנות.'}
+  en:{lsw:'עברית',sub:'Early eye detection. Any phone. Any environment.',lv:'Voice guidance',von:'On',voff:'Off',terms:'I understand this is a wellness tool, not a medical diagnosis. I agree to the privacy policy.',priv:'🔒 All photos are analysed on your device. Nothing uploaded externally.',start:'Start scan →',camno:'Camera access needed. Tap Upload or enable permission.',fl:'FRONT',bl:'BACK',frontl:'Front',backl:'Back',torchl:'Flash',upl:'Upload',ell:'👁 Left eye',erl:'👁 Right eye',rk:'↩ Retake',up:'Use photo →',addp:'+ Add another photo (clinical)',ttitle:'Vision Test',tsub:'Test each eye separately. Cover one eye with your hand.',dtip:"Hold screen at arm's length — about 40cm",ayes:'Correct',ano:"Couldn't read",skip:'Skip this test',cr:'Cover your right eye.',cl:'Cover your left eye.',rl:'Read the letters then tap your answer.',done:'Test complete. See results below.',nv:'Normal vision',mr:'Mild reduction',mod:'Moderate reduction',na:'Needs attention',bal:'✓ Eyes balanced. No significant difference. Keep testing monthly.',imb:'⚠ Interocular difference detected. Eyes differ in acuity — exactly what Eye AI tracks monthly. Mention this to an optometrist.',aok:'Vision appears within normal range. Continue monthly testing.',awk:'A difference between your eyes was detected. Mention this to your optometrist.',hlbl:'Your history',hll:'Left',hrl:'Right',aclbl:'What to do next',share:'📄 Share with doctor',disc:'⚠ Wellness screening only — not a medical diagnosis. Always consult a qualified ophthalmologist.',vwel:'Welcome to Eye AI. Choose who you are scanning and set your voice preference.',vcam:'Camera ready. Align the eye to the oval on screen.',vdark:'Lighting too dark. Move to a brighter area.',vbri:'Too bright. Move away from direct sunlight.',vstil:'Hold the phone steady.',vrdy:'Good. Hold still. Ready to capture.',vcap:'Photo captured. Review quality below.',voth:'Now scan the other eye.',vboth:'Both eyes captured. Now the vision test.',vres:'Your results are ready.'},
+  he:{lsw:'English',sub:'גילוי עיניים מוקדם. כל טלפון. כל סביבה.',lv:'הנחיה קולית',von:'פועל',voff:'כבוי',terms:'אני מבין/ה שזהו כלי סקר ולא אבחנה רפואית. אני מסכים/ה.',priv:'🔒 כל התמונות מנותחות על המכשיר. לא מועלה שום דבר.',start:'התחל סריקה ←',camno:'נדרשת גישה למצלמה. לחץ העלה או אפשר הרשאה.',fl:'קדמי',bl:'אחורי',frontl:'קדמי',backl:'אחורי',torchl:'פנס',upl:'העלה',ell:'👁 עין שמאל',erl:'👁 עין ימין',rk:'↩ צלם שוב',up:'השתמש בתמונה ←',addp:'+ הוסף תמונה נוספת (קליני)',ttitle:'בדיקת חדות ראיה',tsub:'בדוק כל עין בנפרד. כסה עין אחת.',dtip:'החזק את המסך במרחק זרוע — כ-40 ס"מ',ayes:'קראתי נכון',ano:'לא הצלחתי',skip:'דלג על בדיקה זו',cr:'כסה את עין ימין.',cl:'כסה את עין שמאל.',rl:'קרא את האותיות ואז הקש תשובה.',done:'הבדיקה הסתיימה.',nv:'ראיה תקינה',mr:'ירידה קלה',mod:'ירידה בינונית',na:'דרוש בדיקה',bal:'✓ העיניים מאוזנות. המשך בבדיקות חודשיות.',imb:'⚠ זוהה הבדל בין עיניים. מומלץ לציין לאופטומטריסט.',aok:'הראיה בטווח הנורמלי. המשך בבדיקות חודשיות.',awk:'זוהה הבדל. ציין זאת לאופטומטריסט.',hlbl:'ההיסטוריה שלך',hll:'שמאל',hrl:'ימין',aclbl:'מה לעשות עכשיו',share:'📄 שתף עם רופא',disc:'⚠ סקר רווחה בלבד — לא אבחנה. יש להתייעץ עם רופא עיניים.',vwel:'ברוכים הבאים ל-Eye AI. בחר את מי אתה סורק.',vcam:'המצלמה מוכנה. יישר את העין לאליפסה.',vdark:'תאורה חשוכה. עבור לאזור בהיר יותר.',vbri:'בהיר מדי. התרחק מאור ישיר.',vstil:'החזק את הטלפון יציב.',vrdy:'מצוין. אל תזוז.',vcap:'תמונה צולמה. בדוק את האיכות.',voth:'סרוק את העין השנייה.',vboth:'שתי העיניים צולמו. עכשיו בדיקת ראיה.',vres:'התוצאות שלך מוכנות.'}
 };
 
 let lang='en',voiceOn=true,curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
@@ -1418,8 +1418,8 @@ function doShare(){
   const ctLine=scores.ct?`\nCover test: ${(scores.ct.right!=='still'||scores.ct.left!=='still')?'Follow up recommended':'No misalignment signs detected'}`:'';
   const cbLine=scores.cb?`\nColor vision: ${scores.cb.pct}% (${scores.cb.correct}/${scores.cb.total} plates correct)`:'';
   const csLine=scores.cs?`\nContrast sensitivity: Both ${scores.cs.both!==null?scores.cs.both+'%':'—'}, Left ${scores.cs.left!==null?scores.cs.left+'%':'—'}, Right ${scores.cs.right!==null?scores.cs.right+'%':'—'}`:'';
-  const txt=`EyeAI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}${ctLine}${cbLine}${csLine}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
-  if(navigator.share)navigator.share({title:'EyeAI Result',text:txt});
+  const txt=`Eye AI Screening Result\nDate: ${new Date().toLocaleDateString()}\n\nBoth eyes: ${bs}\nLeft eye: ${ls}\nRight eye: ${rs}${ctLine}${cbLine}${csLine}\n\n${note}\n\nWellness screening only — not a medical diagnosis.`;
+  if(navigator.share)navigator.share({title:'Eye AI Result',text:txt});
   else navigator.clipboard?.writeText(txt).then(()=>alert('Copied to clipboard'));
 }
 
