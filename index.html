@@ -1257,7 +1257,9 @@ function startVisionTest(){
   $('t-setup').style.display='none';$('t-run').style.display='none';
   scores={both:null,left:null,right:null,ct:null,cb:null,cs:null};tRow=0;tActive=true;
   enterFS();
-  speakThenDo('Both eyes open. Read the letters on screen, then tap Correct or Cannot read.',null,600,()=>runPhase('both'));
+  speakThenDo("Let's start with both eyes open.",0.65,400,()=>{
+    speakThenDo('Read the letters on screen, then tap Correct or Cannot read.',null,600,()=>runPhase('both'));
+  });
 }
 
 function runPhase(ph){
@@ -1932,7 +1934,9 @@ function initCSTest(){
   if(!csInstrShown){
     csInstrShown=true;
     enterCSInstr();
-    speakThenDo("Now a contrast test. You will see letters that get progressively lighter. Tap Yes only if you can read the letter confidently without guessing. The moment you are not completely sure — tap No.",0.65,800,()=>{});
+    speakThenDo("Let's start with both eyes open.",0.65,400,()=>{
+      speakThenDo("Now a contrast test. You will see letters that get progressively lighter. Tap Yes only if you can read the letter confidently without guessing. The moment you are not completely sure — tap No.",0.65,800,()=>{});
+    });
   }else{
     enterCSFS();
     speakThenDo("Now the contrast test.",0.65,600,()=>showCSLevel());
