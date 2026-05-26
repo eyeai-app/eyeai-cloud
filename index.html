@@ -475,6 +475,7 @@ async function loadEmbeddedModels(){
     <div class="actbox"><div class="actlbl" id="aclbl">What to do next</div><div id="actxt">Continue monthly testing to track any changes.</div></div>
     <div class="brow"><button class="btn-s" onclick="doShare()" id="sharebtn">📄 Share with doctor</button><button class="btn-p" onclick="go('s2');resetAll()">Scan again →</button></div>
     <div class="disc" id="discl">⚠ Wellness screening only — not a medical diagnosis. Always consult a qualified ophthalmologist.</div>
+    <div id="skipNote" style="display:none;font-size:12px;color:var(--text-dim);text-align:center;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);line-height:1.5">Some tests were skipped. For a complete assessment, run all tests.</div>
   </div>
 </div>
 
@@ -1327,7 +1328,7 @@ function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();e
 function showRes(){
   go('s5');
   function sl(s){
-    if(s===null)return{l:'—',c:'',b:'Not tested'};
+    if(s===null)return{l:'—',c:'',b:'Test skipped'};
     const r=SNELLEN[s];
     const b=s>=8?t('nv'):s>=6?t('mr'):s>=4?t('mod'):t('na');
     const c=s>=8?'ok':s>=6?'warn':'alert';
@@ -1358,7 +1359,7 @@ function showRes(){
       $('ctResB').textContent=anyIssue?'Possible eye misalignment — mention to your optometrist':'No misalignment signs detected';
     }else{
       $('ctRes').textContent='—';$('ctRes').className='escore';
-      $('ctResB').textContent='Not completed';
+      $('ctResB').textContent='Test skipped';
     }
   }
   // Color blindness result
@@ -1370,7 +1371,7 @@ function showRes(){
       $('cbRes').textContent=pct+'%';
       $('cbRes').className='escore '+(pct>=75?'ok':pct>=50?'warn':'alert');
       $('cbResB').textContent=pct>=75?'Normal color vision':pct>=50?'Mild color difficulty':'Color vision concern';
-    }else cbCard.style.display='none';
+    }else{cbCard.style.display='';$('cbRes').textContent='—';$('cbRes').className='escore';$('cbResB').textContent='Test skipped';}
   }
   // Contrast sensitivity result
   const csCard=$('csCard');
@@ -1383,7 +1384,7 @@ function showRes(){
         if(re){re.textContent=scores.cs[ph]!==null?scores.cs[ph]+'%':'—';re.className='escore '+lbl.c;}
         if(be)be.textContent=lbl.b;
       });
-    }else csCard.style.display='none';
+    }else{csCard.style.display='';['csBothRes','csLeftRes','csRightRes'].forEach(id=>{const e=$(id);if(e){e.textContent='—';e.className='escore';}});['csBothResB','csLeftResB','csRightResB'].forEach(id=>{const e=$(id);if(e)e.textContent='Test skipped';});}
   }
   const hasImb=scores.left!==null&&scores.right!==null&&Math.abs(scores.left-scores.right)>=2;
   const hasPoor=(scores.left!==null&&scores.left<4)||(scores.right!==null&&scores.right<4)||(scores.both!==null&&scores.both<4);
@@ -1397,6 +1398,8 @@ function showRes(){
   buildHist(scores.left,scores.right);
   speak('vres',true);
   runAIAnalysis();
+  const anyNull=(scores.both===null&&scores.left===null&&scores.right===null)||scores.ct===null||scores.cb===null||scores.cs===null;
+  const sn=$('skipNote');if(sn)sn.style.display=anyNull?'':'none';
 }
 
 function buildHist(l,r){
