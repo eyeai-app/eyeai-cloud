@@ -1320,10 +1320,11 @@ function saveTS(ri){
 }
 
 function skipTest(){
+  synth.cancel();
   tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();
   clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();
 }
-function skipTestFS(){tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();}
+function skipTestFS(){synth.cancel();tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1558,6 +1559,7 @@ function whoShowCards(){
   if(y)y.style.display='none';
 }
 function whoSelect(w){
+  synth.cancel();
   if(w==='self'){
     childMode=false;
     speakThenDo("Let's check your eyes. This will take about 6 minutes.",0.65,1500,proceedToS1);
@@ -1861,7 +1863,7 @@ function finishCBTest(){
   speakThenDo(cbVoice,0.65,1000,()=>initCSTest());
 }
 
-function skipCBTest(){exitCBFS();scores.cb=null;initCSTest();}
+function skipCBTest(){synth.cancel();exitCBFS();scores.cb=null;initCSTest();}
 // ── END COLOR BLINDNESS TEST ──────────────────────────────────────
 
 // ── COVER TEST ────────────────────────────────────────────────────
@@ -1918,7 +1920,7 @@ function finishCoverTest(){
   speakThenDo(anyIssue?"Thank you. Now let's check your color vision.":"Good. Now let's check your color vision.",0.65,800,()=>initCBTest());
 }
 
-function skipCoverTest(){exitCTFS();scores.ct=null;initCBTest();}
+function skipCoverTest(){synth.cancel();exitCTFS();scores.ct=null;initCBTest();}
 // ── END COVER TEST ────────────────────────────────────────────────
 
 // ── CONTRAST SENSITIVITY TEST ─────────────────────────────────────
@@ -2030,7 +2032,7 @@ function showInfoPopup(title,txt){
 }
 function hideInfoPopup(){$('infoPopup').classList.remove('show');}
 
-function skipCSTest(){exitCSInstr();exitCSFS();scores.cs=null;showRes();}
+function skipCSTest(){synth.cancel();exitCSInstr();exitCSFS();scores.cs=null;showRes();}
 // ── END CONTRAST SENSITIVITY TEST ─────────────────────────────────
 
 // ── AI MODEL INTEGRATION ──────────────────────────────────────────
