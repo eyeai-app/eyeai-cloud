@@ -1322,9 +1322,9 @@ function saveTS(ri){
 function skipTest(){
   voiceAbort=true;synth.cancel();
   tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();
-  clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();
+  clearSession();scores.both=null;scores.left=null;scores.right=null;voiceAbort=false;initCoverTest();
 }
-function skipTestFS(){voiceAbort=true;synth.cancel();tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();}
+function skipTestFS(){voiceAbort=true;synth.cancel();tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();clearSession();scores.both=null;scores.left=null;scores.right=null;voiceAbort=false;initCoverTest();}
 
 function showRes(){
   go('s5');
