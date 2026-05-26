@@ -1863,7 +1863,7 @@ function finishCBTest(){
   speakThenDo(cbVoice,0.65,1000,()=>initCSTest());
 }
 
-function skipCBTest(){voiceAbort=true;synth.cancel();exitCBFS();scores.cb=null;initCSTest();}
+function skipCBTest(){voiceAbort=true;synth.cancel();voiceAbort=false;exitCBFS();scores.cb=null;initCSTest();}
 // ── END COLOR BLINDNESS TEST ──────────────────────────────────────
 
 // ── COVER TEST ────────────────────────────────────────────────────
@@ -1920,7 +1920,7 @@ function finishCoverTest(){
   speakThenDo(anyIssue?"Thank you. Now let's check your color vision.":"Good. Now let's check your color vision.",0.65,800,()=>initCBTest());
 }
 
-function skipCoverTest(){voiceAbort=true;synth.cancel();exitCTFS();scores.ct=null;initCBTest();}
+function skipCoverTest(){voiceAbort=true;synth.cancel();voiceAbort=false;exitCTFS();scores.ct=null;initCBTest();}
 // ── END COVER TEST ────────────────────────────────────────────────
 
 // ── CONTRAST SENSITIVITY TEST ─────────────────────────────────────
