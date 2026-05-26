@@ -1466,6 +1466,8 @@ function calNext(){
     showCalSlide(calIdx+1);
   }else{
     exitCalib();
+    enterFS();
+    runPhase('both');
     tStarted=true;        // block updateDistBar from auto-triggering startVisionTest
     $('t-setup').style.display='none';
     setTimeout(()=>{
@@ -1473,8 +1475,6 @@ function calNext(){
         speakThenDo('Good. Now the test begins. Look at the letters and answer honestly.',0.65,1200,()=>{
           startDistCam();       // speaks neutral intro; guard prevents immediate corrective voice
           tRow=0;tActive=true;
-          enterFS();
-          runPhase('both');
         });
       });
     },1500);
