@@ -611,7 +611,7 @@ const TR={
   he:{lsw:'English',sub:'גילוי עיניים מוקדם. כל טלפון. כל סביבה.',lv:'הנחיה קולית',von:'פועל',voff:'כבוי',terms:'אני מבין/ה שזהו כלי סקר ולא אבחנה רפואית. אני מסכים/ה.',priv:'🔒 כל התמונות מנותחות על המכשיר. לא מועלה שום דבר.',start:'התחל סריקה ←',camno:'נדרשת גישה למצלמה. לחץ העלה או אפשר הרשאה.',fl:'קדמי',bl:'אחורי',frontl:'קדמי',backl:'אחורי',torchl:'פנס',upl:'העלה',ell:'👁 עין שמאל',erl:'👁 עין ימין',rk:'↩ צלם שוב',up:'השתמש בתמונה ←',addp:'+ הוסף תמונה נוספת (קליני)',ttitle:'בדיקת חדות ראיה',tsub:'בדוק כל עין בנפרד. כסה עין אחת.',dtip:'החזק את המסך במרחק זרוע — כ-40 ס"מ',ayes:'קראתי נכון',ano:'לא הצלחתי',skip:'דלג על בדיקה זו',cr:'כסה את עין ימין.',cl:'כסה את עין שמאל.',rl:'קרא את האותיות ואז הקש תשובה.',done:'הבדיקה הסתיימה.',nv:'ראיה תקינה',mr:'ירידה קלה',mod:'ירידה בינונית',na:'דרוש בדיקה',bal:'✓ העיניים מאוזנות. המשך בבדיקות חודשיות.',imb:'⚠ זוהה הבדל בין עיניים. מומלץ לציין לאופטומטריסט.',aok:'הראיה בטווח הנורמלי. המשך בבדיקות חודשיות.',awk:'זוהה הבדל. ציין זאת לאופטומטריסט.',hlbl:'ההיסטוריה שלך',hll:'שמאל',hrl:'ימין',aclbl:'מה לעשות עכשיו',share:'📄 שתף עם רופא',disc:'⚠ סקר רווחה בלבד — לא אבחנה. יש להתייעץ עם רופא עיניים.',vwel:'ברוכים הבאים ל-Eye AI. בחר את מי אתה סורק.',vcam:'המצלמה מוכנה. יישר את העין לאליפסה.',vdark:'תאורה חשוכה. עבור לאזור בהיר יותר.',vbri:'בהיר מדי. התרחק מאור ישיר.',vstil:'החזק את הטלפון יציב.',vrdy:'מצוין. אל תזוז.',vcap:'תמונה צולמה. בדוק את האיכות.',voth:'סרוק את העין השנייה.',vboth:'שתי העיניים צולמו. עכשיו בדיקת ראיה.',vres:'התוצאות שלך מוכנות.'}
 };
 
-let lang='en',voiceOn=true,curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
+let lang='en',voiceOn=true,voiceAbort=false,curEye='left',stream=null,curCam='front',torchOn=false,qTimer=null;
 let photos={left:null,right:null},scores={both:null,left:null,right:null,ct:null,cb:null,cs:null},tPhase='both',tRow=0,tActive=false,tStarted=false,tPaused=false,hist=[];
 let autoCapReady=0,autoCapturing=false;
 let faceMeshInst=null,latestLandmarks=null,faceMeshReady=false,fmProcessing=false;
@@ -755,13 +755,13 @@ function speakTxt(txt,force=false,rate=null){
 function speakThenDo(txt,rate,pauseAfter,callback){
   synth.cancel();
   setVtxt(txt);
-  if(!voiceOn){setTimeout(callback,pauseAfter);return;}
+  if(!voiceOn){if(voiceAbort){voiceAbort=false;return;}setTimeout(callback,pauseAfter);return;}
   setVon(true);
   const u=new SpeechSynthesisUtterance(txt);
   _applyVoice(u);
   if(rate!==null)u.rate=rate;
-  u.onend=()=>{setVon(false);setTimeout(callback,pauseAfter);};
-  u.onerror=()=>{setVon(false);setTimeout(callback,pauseAfter);};
+  u.onend=()=>{setVon(false);if(voiceAbort){voiceAbort=false;return;}setTimeout(callback,pauseAfter);};
+  u.onerror=()=>{setVon(false);if(voiceAbort){voiceAbort=false;return;}setTimeout(callback,pauseAfter);};
   synth.speak(u);
 }
 
@@ -1320,11 +1320,11 @@ function saveTS(ri){
 }
 
 function skipTest(){
-  synth.cancel();
+  voiceAbort=true;synth.cancel();
   tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();
   clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();
 }
-function skipTestFS(){synth.cancel();tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();}
+function skipTestFS(){voiceAbort=true;synth.cancel();tActive=false;tStarted=false;tPaused=false;stopDistCam();exitCalib();exitFS();exitCBFS();exitCTFS();exitCSFS();clearSession();scores.ct=null;scores.cb=null;scores.cs=null;showRes();}
 
 function showRes(){
   go('s5');
@@ -1559,7 +1559,7 @@ function whoShowCards(){
   if(y)y.style.display='none';
 }
 function whoSelect(w){
-  synth.cancel();
+  voiceAbort=true;synth.cancel();
   if(w==='self'){
     childMode=false;
     speakThenDo("Let's check your eyes. This will take about 6 minutes.",0.65,1500,proceedToS1);
@@ -1863,7 +1863,7 @@ function finishCBTest(){
   speakThenDo(cbVoice,0.65,1000,()=>initCSTest());
 }
 
-function skipCBTest(){synth.cancel();exitCBFS();scores.cb=null;initCSTest();}
+function skipCBTest(){voiceAbort=true;synth.cancel();exitCBFS();scores.cb=null;initCSTest();}
 // ── END COLOR BLINDNESS TEST ──────────────────────────────────────
 
 // ── COVER TEST ────────────────────────────────────────────────────
@@ -1920,7 +1920,7 @@ function finishCoverTest(){
   speakThenDo(anyIssue?"Thank you. Now let's check your color vision.":"Good. Now let's check your color vision.",0.65,800,()=>initCBTest());
 }
 
-function skipCoverTest(){synth.cancel();exitCTFS();scores.ct=null;initCBTest();}
+function skipCoverTest(){voiceAbort=true;synth.cancel();exitCTFS();scores.ct=null;initCBTest();}
 // ── END COVER TEST ────────────────────────────────────────────────
 
 // ── CONTRAST SENSITIVITY TEST ─────────────────────────────────────
@@ -2032,7 +2032,7 @@ function showInfoPopup(title,txt){
 }
 function hideInfoPopup(){$('infoPopup').classList.remove('show');}
 
-function skipCSTest(){synth.cancel();exitCSInstr();exitCSFS();scores.cs=null;showRes();}
+function skipCSTest(){voiceAbort=true;synth.cancel();exitCSInstr();exitCSFS();scores.cs=null;showRes();}
 // ── END CONTRAST SENSITIVITY TEST ─────────────────────────────────
 
 // ── AI MODEL INTEGRATION ──────────────────────────────────────────
