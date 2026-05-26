@@ -1562,7 +1562,8 @@ function whoSelect(w){
   voiceAbort=true;synth.cancel();
   if(w==='self'){
     childMode=false;
-    speakThenDo("Let's check your eyes. This will take about 6 minutes.",0.65,1500,proceedToS1);
+    speakThenDo("Let's check your eyes. This will take about 6 minutes.",0.65,1500,()=>{});
+    setTimeout(proceedToS1,2800);
   }else if(w==='child'){
     speakTxt('How old is your child?',true,0.65);
     const c=$('sWhoCards'),a=$('sWhoAge');
