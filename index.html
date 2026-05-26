@@ -109,7 +109,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .pseg{flex:1;height:3px;border-radius:2px;background:var(--surface2);transition:background .25s}
 .pseg.done{background:var(--green)}
 .pseg.cur{background:var(--accent);opacity:.5}
-.dtip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 11px;font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:7px}
+.dtip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 11px;font-size:15px;color:var(--text);display:flex;align-items:center;gap:7px}
 .pdot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:blink 1.5s ease-in-out infinite}
 .tinstr{text-align:center;font-size:13px;color:var(--text-dim);line-height:1.5}
 .tinstr strong{color:var(--text)}
@@ -1285,7 +1285,7 @@ function buildProg(){
 function renderCh(){
   const row=SNELLEN[tRow];if(!row)return;
   const instr=tPhase==='both'?'Both eyes open':tPhase==='left'?'Cover your right eye':'Cover your left eye';
-  const html=`<div style="font-size:11px;color:var(--text-dimmer);margin-bottom:.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em">${instr}</div><div class="snellen-row">${row.l.map(l=>`<span class="cletter" style="font-size:${row.sz}px">${l}</span>`).join('')}</div><div style="font-size:10px;color:var(--text-dimmer);margin-top:5px;font-family:var(--mono)">${row.lb}</div>`;
+  const html=`<div style="font-size:14px;color:var(--text-dim);margin-bottom:.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em">${instr}</div><div class="snellen-row">${row.l.map(l=>`<span class="cletter" style="font-size:${row.sz}px">${l}</span>`).join('')}</div><div style="font-size:13px;color:var(--text-dim);margin-top:5px;font-family:var(--mono)">${row.lb}</div>`;
   ['chartbox','fsChart'].forEach(id=>{const e=$(id);if(e)e.innerHTML=html;});
 }
 
