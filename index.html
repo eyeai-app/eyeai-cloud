@@ -1825,7 +1825,7 @@ function initCBTest(){
   const shuffled=[...CB_PLATES].sort(()=>Math.random()-0.5);
   cbSession=shuffled.slice(0,4);cbIdx=0;cbScores=[];
   enterCBFS();
-  showCBPlate(0);
+  speakThenDo("Now let's check your color vision. You'll see a series of circles made up of colored dots. Tell me the number you see in each one. Let's start with both eyes open.",0.65,500,()=>showCBPlate(0));
 }
 
 function showCBPlate(idx){
