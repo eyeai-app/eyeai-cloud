@@ -1257,11 +1257,7 @@ function startVisionTest(){
   $('t-setup').style.display='none';$('t-run').style.display='none';
   scores={both:null,left:null,right:null,ct:null,cb:null,cs:null};tRow=0;tActive=true;
   enterFS();
-  setTimeout(()=>{
-    speakThenDo("Let's start with both eyes open.",0.65,400,()=>{
-      speakThenDo('Read the letters on screen, then tap Correct or Cannot read.',null,600,()=>runPhase('both'));
-    });
-  },1200);
+  speakThenDo('Read the letters on screen, then tap Correct or Cannot read.',null,600,()=>runPhase('both'));
 }
 
 function runPhase(ph){
@@ -1469,11 +1465,13 @@ function calNext(){
     tStarted=true;        // block updateDistBar from auto-triggering startVisionTest
     $('t-setup').style.display='none';
     setTimeout(()=>{
-      speakThenDo('Good. Now the test begins. Look at the letters and answer honestly.',0.65,1200,()=>{
-        startDistCam();       // speaks neutral intro; guard prevents immediate corrective voice
-        tRow=0;tActive=true;
-        enterFS();
-        runPhase('both');
+      speakThenDo("Let's start with both eyes open.",0.65,400,()=>{
+        speakThenDo('Good. Now the test begins. Look at the letters and answer honestly.',0.65,1200,()=>{
+          startDistCam();       // speaks neutral intro; guard prevents immediate corrective voice
+          tRow=0;tActive=true;
+          enterFS();
+          runPhase('both');
+        });
       });
     },1500);
   }
