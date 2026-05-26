@@ -445,9 +445,9 @@ async function loadEmbeddedModels(){
     <div class="ecard" id="csCard" style="display:none;margin-bottom:0">
       <div class="eclbl eclbl-row"><span>Contrast Sensitivity</span><button class="info-btn" onclick="showInfoPopup('Contrast sensitivity',csInfoText(scores.cs&&scores.cs.both!==null?scores.cs.both:scores.cs&&scores.cs.left!==null?scores.cs.left:null))">i</button></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">
-        <div style="text-align:center"><div style="font-size:9px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Both</div><div class="escore" id="csBothRes">—</div><div class="esub" id="csBothResB">—</div></div>
-        <div style="text-align:center"><div style="font-size:9px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Left</div><div class="escore" id="csLeftRes">—</div><div class="esub" id="csLeftResB">—</div></div>
-        <div style="text-align:center"><div style="font-size:9px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Right</div><div class="escore" id="csRightRes">—</div><div class="esub" id="csRightResB">—</div></div>
+        <div style="text-align:center"><div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Both</div><div class="escore" id="csBothRes">—</div><div class="esub" id="csBothResB">—</div></div>
+        <div style="text-align:center"><div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Left</div><div class="escore" id="csLeftRes">—</div><div class="esub" id="csLeftResB">—</div></div>
+        <div style="text-align:center"><div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Right</div><div class="escore" id="csRightRes">—</div><div class="esub" id="csRightResB">—</div></div>
       </div>
     </div>
     <div class="ecmp">
@@ -524,8 +524,8 @@ async function loadEmbeddedModels(){
 <div class="fs-ov" id="ctOv">
   <div class="fs-body" style="align-items:center;justify-content:center;gap:1.8rem;padding:2rem 1.5rem">
     <div style="text-align:center">
-      <div style="font-size:.9rem;font-weight:600;color:var(--text-dim)">Cover Test</div>
-      <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);margin-top:2px">Eye alignment check</div>
+      <div style="font-size:.9rem;font-weight:600;color:var(--text)">Cover Test</div>
+      <div style="font-size:14px;font-family:var(--mono);color:var(--text-dim);margin-top:2px">Eye alignment check</div>
     </div>
     <div style="width:180px;height:180px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0">
       <div style="width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px rgba(88,166,255,.7)"></div>
@@ -574,8 +574,8 @@ async function loadEmbeddedModels(){
 <div class="fs-ov" id="csInstrOv">
   <div class="fs-body" style="align-items:center;justify-content:center;gap:1.6rem;padding:2rem 1.5rem">
     <div style="text-align:center">
-      <div style="font-size:.9rem;font-weight:600;color:var(--text-dim)">Contrast Test</div>
-      <div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);margin-top:2px">Instructions</div>
+      <div style="font-size:.9rem;font-weight:600;color:var(--text)">Contrast Test</div>
+      <div style="font-size:14px;font-family:var(--mono);color:var(--text-dim);margin-top:2px">Instructions</div>
     </div>
     <div style="font-size:14px;color:var(--text);line-height:1.8;max-width:290px;text-align:center">
       You will see letters that get <strong>progressively lighter</strong>.<br><br>
@@ -1453,7 +1453,7 @@ function showCalSlide(idx){
   const btn=$('calNextBtn');if(btn)btn.textContent=idx===CAL_SLIDES.length-1?'Begin Test →':'Next →';
   const body=$('calBody');if(!body)return;
   if(slide.blur===null){
-    body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">Instructions</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px;margin-bottom:.5rem"></div><div style="font-size:1.05rem;color:var(--text);text-align:center;line-height:2;max-width:300px">Only tap<br><span style="color:var(--green);font-weight:700;font-size:1.15rem">✓ Can Read</span><br>if the letter is <strong>completely clear and sharp</strong>.<br><br>If it is blurry even slightly — tap<br><span style="color:var(--danger);font-weight:700;font-size:1.15rem">✗ Cannot Read</span><br><br><span style="font-size:.9rem;color:var(--text-dim)">Your honest answer protects your health.</span></div>';
+    body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">Instructions</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px;margin-bottom:.5rem"></div><div style="font-size:1.05rem;color:var(--text);text-align:center;line-height:2;max-width:300px">Only tap<br><span style="color:var(--green);font-weight:700;font-size:1.15rem">✓ Can Read</span><br>if the letter is <strong>completely clear and sharp</strong>.<br><br>If it is blurry even slightly — tap<br><span style="color:var(--danger);font-weight:700;font-size:1.15rem">✗ Cannot Read</span><br><br><span style="font-size:1rem;color:var(--text)">Your honest answer protects your health.</span></div>';
   }else{
     const caps=['Crystal clear — this is the goal','Mild blur — already reduced vision','Significant blur — not acceptable'];
     body.innerHTML='<div style="font-size:11px;font-family:var(--mono);color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.1em">'+slide.label+'</div><div style="width:44px;height:2px;background:var(--accent);border-radius:2px"></div><div style="filter:blur('+slide.blur+'px);font-family:\'Courier New\',monospace;font-size:130px;font-weight:700;color:#fff;line-height:1;text-align:center;user-select:none;padding:.5rem 2rem;-webkit-filter:blur('+slide.blur+'px)">E</div><div style="font-size:13px;color:var(--text-dim);text-align:center;line-height:1.5;max-width:260px">'+caps[idx]+'</div>';
