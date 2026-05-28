@@ -1472,10 +1472,8 @@ function calNext(){
     $('t-setup').style.display='none';
     setTimeout(()=>{
       speakThenDo("Let's start with both eyes open.",0.65,400,()=>{
-        speakThenDo('Good. Now the test begins. Look at the letters and answer honestly.',0.65,1200,()=>{
-          startDistCam();       // speaks neutral intro; guard prevents immediate corrective voice
-          tRow=0;tActive=true;
-        });
+        startDistCam(true);
+        tRow=0;tActive=true;
       });
     },1500);
   }
