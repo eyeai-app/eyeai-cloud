@@ -1842,6 +1842,7 @@ function showCBPlate(idx){
 }
 
 function cbAns(userInput){
+  synth.cancel();
   const plate=cbSession[cbIdx];
   const correct=userInput===plate.num;
   cbScores.push({plate:plate.num,user:userInput,correct});
