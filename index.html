@@ -1966,6 +1966,7 @@ function showCSLevel(){
 }
 
 function csAns(canSee){
+  synth.cancel();
   if(csProcessing)return;
   csProcessing=true;
   if(!canSee){
