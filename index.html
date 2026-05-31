@@ -408,7 +408,7 @@ async function loadEmbeddedModels(){
         </div>
         <div style="font-size:10px;color:var(--text-dimmer);margin-top:.4rem" id="tsub">Phases: both eyes → left eye → right eye</div>
       </div>
-      <button class="btn-p" onclick="startVisionTest()" id="t-ready-btn" disabled style="opacity:.4">Hold at correct distance to start</button>
+      <button class="btn-p" onclick="beginTest()" id="t-ready-btn">Begin Test →</button>
       <div class="skip" onclick="skipTest()">Skip vision test</div>
     </div>
 
@@ -1247,10 +1247,9 @@ function initTest(){
   tStarted=false;tPaused=false;clearSession();
   $('t-setup').style.display='';$('t-run').style.display='none';
   distConfirm=0;setTestMode('near');
-  setTimeout(()=>{
-    speakThenDo("Great. Now let's begin your vision test.",0.65,1000,()=>enterCalib());
-  },2500);
+  speakThenDo("Hold your phone at arm's length, about 40 centimeters from your face. When you're ready, tap Begin Test.",0.65,400,()=>{});
 }
+function beginTest(){synth.cancel();voiceAbort=true;voiceAbort=false;enterCalib();}
 
 function startVisionTest(){
   if(tStarted)return;
@@ -1624,8 +1623,6 @@ function setTestMode(m){
   const tt=$('ttitle');if(tt)tt.textContent='Position at 40 cm';
   const dt=$('dtiptxt');if(dt)dt.textContent="Hold the screen at arm's length, about 40 cm from your face. Keep your head straight.";
   distConfirm=0;
-  const btn=$('t-ready-btn');
-  if(btn){btn.disabled=true;btn.style.opacity='.4';btn.textContent='Hold at correct distance to start';}
 }
 
 async function startDistCam(skipVoice=false){
