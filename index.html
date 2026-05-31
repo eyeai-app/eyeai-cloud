@@ -18,7 +18,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .logo-eye::after{content:'';width:7px;height:7px;background:var(--accent);border-radius:50%;animation:blink 2.5s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.65)}}
 .logo-txt{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em}
-.lang-btn{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer}
+.lang-btn{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;margin-right:3rem}
 .lang-btn:hover{border-color:var(--accent);color:var(--accent)}
 .vbar{margin:.4rem 1.2rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 11px;display:flex;align-items:center;gap:8px;min-height:36px;flex-shrink:0;transition:border-color .2s}
 .vbar.on{border-color:var(--accent)}
@@ -192,7 +192,7 @@ canvas{display:none}
 .dist-bar-fill{height:100%;border-radius:6px;transition:width .35s,background .35s;min-width:4px}
 .dist-status{font-size:12px;font-family:var(--mono);text-align:center;color:var(--text-dim);min-height:1.2em}
 /* Global mute button */
-.g-mute{position:absolute;bottom:1.1rem;right:1.1rem;z-index:100;width:40px;height:40px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);color:var(--text-dim);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.5);transition:all .2s}
+.g-mute{position:fixed;top:0.9rem;right:1.1rem;z-index:999;width:40px;height:40px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);color:var(--text-dim);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.5);transition:all .2s}
 .g-mute.muted{border-color:var(--danger);color:var(--danger);background:var(--danger-dim)}
 /* Fullscreen vision test overlay */
 .fs-ov{position:fixed;inset:0;z-index:600;background:#07090d;display:none;flex-direction:column;overflow:hidden}
